@@ -1,6 +1,6 @@
 {
   "name": "ppio-claude-setup",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "description": "一键配置 Claude Code + PPIO API 环境变量的图形化工具",
   "main": "main.js",
   "scripts": {
@@ -26,7 +26,7 @@
   },
   "build": {
     "appId": "com.ppio.claude-setup",
-    "productName": "PPIO Claude Setup",
+    "productName": "PPIO Claude Code Setup",
     "copyright": "Copyright © 2024 PPIO",
     "directories": {
       "output": "dist"
@@ -67,10 +67,10 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "PPIO Claude Setup"
+      "shortcutName": "PPIO Claude Code Setup"
     },
     "dmg": {
-      "title": "PPIO Claude Setup",
+      "title": "PPIO Claude Code Setup",
       "contents": [
         {
           "x": 410,

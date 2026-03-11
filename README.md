@@ -1,4 +1,4 @@
-# ⚡ PPIO Claude Setup
+# ⚡ PPIO Claude Code Setup
 
 > 一键配置 Claude Code + PPIO API 环境变量的图形化工具，适合电脑小白使用。
 
@@ -13,7 +13,7 @@
 
 ```
 ┌─────────────────────────────────────┐
-│  ⚡ PPIO Claude Setup               │
+│  ⚡ PPIO Claude Code Setup               │
 ├─────────────────────────────────────┤
 │                                     │
 │   欢迎 → 配置 → 完成               │

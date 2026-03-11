@@ -32,8 +32,8 @@ function assertEq(a, b, msg) {
 
 // ─── 从 main.js 提取纯逻辑函数（无 Electron 依赖）─────────────
 
-const PPIO_MARKER_START = '# >>> PPIO Claude Setup START >>>';
-const PPIO_MARKER_END = '# <<< PPIO Claude Setup END <<<';
+const PPIO_MARKER_START = '# >>> PPIO Claude Code Setup START >>>';
+const PPIO_MARKER_END = '# <<< PPIO Claude Code Setup END <<<';
 
 function buildEnvBlock(config) {
   const lines = [
@@ -81,12 +81,12 @@ console.log('\n📋 Suite 2: removeEnvBlock');
 const originalContent = `# some content
 export OTHER_VAR="hello"
 
-# >>> PPIO Claude Setup START >>>
+# >>> PPIO Claude Code Setup START >>>
 export ANTHROPIC_BASE_URL="https://api.ppio.com/anthropic"
 export ANTHROPIC_AUTH_TOKEN="sk_old"
 export ANTHROPIC_MODEL="pa/claude-sonnet-4-6"
 export ANTHROPIC_SMALL_FAST_MODEL="pa/claude-haiku-4-5-20251001"
-# <<< PPIO Claude Setup END <<<
+# <<< PPIO Claude Code Setup END <<<
 
 # after content`;
 

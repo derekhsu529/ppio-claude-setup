@@ -515,9 +515,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const ver = await window.electronAPI.getVersion();
       const tag = $('version-tag');
       if (tag) tag.textContent = 'v' + ver;
-      log(`PPIO Claude Setup v${ver} 已启动，按步骤完成配置`, 'info');
+      log(`PPIO Claude Code Setup v${ver} 已启动，按步骤完成配置`, 'info');
     } catch (e) {
-      log('PPIO Claude Setup 已启动，按步骤完成配置', 'info');
+      log('PPIO Claude Code Setup 已启动，按步骤完成配置', 'info');
     }
   })();
 

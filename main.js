@@ -391,8 +391,8 @@ ipcMain.handle('check-config', async () => {
 
 // ─── Mac/Linux Implementation ───────────────────────────────────
 
-const PPIO_MARKER_START = '# >>> PPIO Claude Setup START >>>';
-const PPIO_MARKER_END = '# <<< PPIO Claude Setup END <<<';
+const PPIO_MARKER_START = '# >>> PPIO Claude Code Setup START >>>';
+const PPIO_MARKER_END = '# <<< PPIO Claude Code Setup END <<<';
 
 function buildEnvBlock(config) {
   const lines = [
