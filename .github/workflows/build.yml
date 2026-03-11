@@ -22,32 +22,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Create placeholder icons (if not exist)
+      - name: Create placeholder icons
         run: |
           mkdir -p assets
-          # Create minimal placeholder icons if real ones don't exist
+          if [ ! -f assets/icon.png ]; then
+            printf '\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc\xf8\x0f\x00\x00\x01\x01\x00\x05\x18\xd8N\x00\x00\x00\x00IEND\xaeB`\x82' > assets/icon.png
+          fi
           if [ ! -f assets/icon.icns ]; then
-            # Use a simple python script to create a minimal ICNS placeholder
-            python3 -c "
-import struct, zlib, os
-# Create a minimal 1x1 PNG
-sig = b'\x89PNG\r\n\x1a\n'
-ihdr_data = struct.pack('>IIBBBBB', 1, 1, 8, 2, 0, 0, 0)
-ihdr_crc = zlib.crc32(b'IHDR' + ihdr_data) & 0xffffffff
-ihdr = struct.pack('>I', 13) + b'IHDR' + ihdr_data + struct.pack('>I', ihdr_crc)
-idat_data = zlib.compress(b'\x00\x00\x00\x00')
-idat_crc = zlib.crc32(b'IDAT' + idat_data) & 0xffffffff
-idat = struct.pack('>I', len(idat_data)) + b'IDAT' + idat_data + struct.pack('>I', idat_crc)
-iend_crc = zlib.crc32(b'IEND') & 0xffffffff
-iend = struct.pack('>I', 0) + b'IEND' + struct.pack('>I', iend_crc)
-png = sig + ihdr + idat + iend
-with open('/tmp/icon.png', 'wb') as f:
-    f.write(png)
-print('PNG created')
-"
-            # Convert PNG to icns using sips
-            sips -s format icns /tmp/icon.png --out assets/icon.icns 2>/dev/null || \
-              cp /tmp/icon.png assets/icon.png
+            sips -s format icns assets/icon.png --out assets/icon.icns 2>/dev/null || cp assets/icon.png assets/icon.icns
           fi
 
       - name: Build macOS DMG
@@ -82,7 +64,6 @@ print('PNG created')
         run: |
           New-Item -ItemType Directory -Force -Path assets | Out-Null
           if (-not (Test-Path "assets\icon.ico")) {
-            # Create a minimal valid ICO file (1x1 pixel)
             $bytes = [byte[]](0,0,1,0,1,0,1,1,0,0,1,0,24,0,40,0,0,0,40,0,0,0,1,0,0,0,2,0,0,0,1,0,24,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
             [System.IO.File]::WriteAllBytes("assets\icon.ico", $bytes)
           }
@@ -113,9 +94,6 @@ print('PNG created')
         with:
           path: artifacts
 
-      - name: List artifacts
-        run: find artifacts -type f | sort
-
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -133,15 +111,10 @@ print('PNG created')
             | 🪟 Windows | `PPIO-Claude-Setup-Setup-*.exe` | Windows 10/11 64位 |
 
             ### 使用方法
-
             1. 下载对应平台的安装包
-            2. macOS: 打开 DMG，拖拽到 Applications
-            3. Windows: 运行 exe 安装向导
-            4. 启动应用，按步骤填写 API Key 并点击「一键写入配置」
-
-            ### 变更日志
-
-            - 初始版本发布
+            2. macOS：打开 DMG，拖拽到 Applications
+            3. Windows：运行 exe 安装向导
+            4. 启动应用，按步骤安装环境并配置 API Key
           files: |
             artifacts/**/*.dmg
             artifacts/**/*.exe
