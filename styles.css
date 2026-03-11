@@ -87,6 +87,53 @@ html, body {
 #titlebar .ctrl-btn:hover { background: rgba(255,255,255,0.08); color: var(--text); }
 #titlebar .ctrl-btn.close:hover { background: var(--error); color: #fff; }
 
+/* ─── macOS Traffic Light Buttons ────────────────────────────── */
+.controls-mac {
+  display: none; /* shown via JS on mac */
+  align-items: center;
+  gap: 8px;
+  -webkit-app-region: no-drag;
+}
+
+.controls-win {
+  display: none; /* shown via JS on win/linux */
+  align-items: center;
+  gap: 4px;
+  -webkit-app-region: no-drag;
+}
+
+.mac-btn {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: filter var(--transition);
+  flex-shrink: 0;
+}
+
+.mac-btn:hover { filter: brightness(0.85); }
+
+.mac-close { background: #ff5f57; }
+.mac-min   { background: #febc2e; }
+.mac-max   { background: #28c840; }
+
+/* Title centered when mac controls present */
+.platform-mac #titlebar {
+  justify-content: center;
+  position: relative;
+}
+
+.platform-mac #titlebar .controls-mac {
+  position: absolute;
+  left: 14px;
+}
+
+.platform-mac #titlebar .title {
+  flex: unset;
+}
+
 /* ─── App Layout ─────────────────────────────────────────────── */
 #app {
   display: flex;
@@ -378,19 +425,32 @@ select option {
 
 /* ─── Model grid ─────────────────────────────────────────────── */
 .model-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.model-field {
+  display: flex;
+  align-items: center;
   gap: 12px;
 }
 
 .model-field label {
-  display: block;
+  flex: 0 0 200px;
   font-size: 11px;
   font-weight: 600;
   color: var(--text-muted);
-  margin-bottom: 6px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.model-field select {
+  flex: 1;
+  min-width: 0;
 }
 
 /* ─── Config Preview ─────────────────────────────────────────── */

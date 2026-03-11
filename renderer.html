@@ -11,11 +11,18 @@
 
 <!-- Title Bar -->
 <div id="titlebar">
+  <!-- macOS: traffic light buttons on LEFT -->
+  <div class="controls controls-mac" id="controls-mac">
+    <button class="mac-btn mac-close" id="btn-close" title="关闭"></button>
+    <button class="mac-btn mac-min" id="btn-min" title="最小化"></button>
+    <button class="mac-btn mac-max" id="btn-max" title="最大化"></button>
+  </div>
   <span class="title">⚡ PPIO Claude Setup</span>
-  <div class="controls">
-    <button class="ctrl-btn" id="btn-min" title="最小化">─</button>
-    <button class="ctrl-btn" id="btn-max" title="最大化">□</button>
-    <button class="ctrl-btn close" id="btn-close" title="关闭">✕</button>
+  <!-- Windows: buttons on RIGHT -->
+  <div class="controls controls-win" id="controls-win">
+    <button class="ctrl-btn" id="btn-min-win" title="最小化">─</button>
+    <button class="ctrl-btn" id="btn-max-win" title="最大化">□</button>
+    <button class="ctrl-btn close" id="btn-close-win" title="关闭">✕</button>
   </div>
 </div>
 

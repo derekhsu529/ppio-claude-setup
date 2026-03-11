@@ -1,8 +1,19 @@
 /* renderer.js — frontend logic (runs in renderer process) */
 'use strict';
 
+// ─── Init on DOMContentLoaded ─────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+
 // ─── Helpers ─────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
+
+// ─── Platform detection ───────────────────────────────────────────
+const isMac = window.electronAPI.platform === 'darwin';
+
+// Apply macOS class to body for CSS targeting
+if (isMac) {
+  document.body.classList.add('platform-mac');
+}
 
 // ─── Screens ─────────────────────────────────────────────────────
 const screens = {
@@ -16,9 +27,23 @@ function showScreen(name) {
 }
 
 // ─── Title bar controls ──────────────────────────────────────────
+// macOS controls (left side, traffic light style)
+$('btn-close').addEventListener('click', () => window.electronAPI.close());
 $('btn-min').addEventListener('click', () => window.electronAPI.minimize());
 $('btn-max').addEventListener('click', () => window.electronAPI.maximize());
-$('btn-close').addEventListener('click', () => window.electronAPI.close());
+// Windows controls (right side)
+$('btn-close-win').addEventListener('click', () => window.electronAPI.close());
+$('btn-min-win').addEventListener('click', () => window.electronAPI.minimize());
+$('btn-max-win').addEventListener('click', () => window.electronAPI.maximize());
+
+// Show/hide correct controls based on platform
+if (isMac) {
+  $('controls-mac').style.display = 'flex';
+  $('controls-win').style.display = 'none';
+} else {
+  $('controls-mac').style.display = 'none';
+  $('controls-win').style.display = 'flex';
+}
 
 // ─── Log Area ────────────────────────────────────────────────────
 function getTimestamp() {
@@ -51,7 +76,6 @@ const state = {
 function checkEnvReady() {
   const ready = state.nodeOk && state.claudeOk;
   $('env-ready-banner').style.display = ready ? 'block' : 'none';
-  // Enable/disable config section
   const configSection = $('config-section');
   const configHeader = $('config-section-header');
   if (ready) {
@@ -78,7 +102,6 @@ $('btn-check-node').addEventListener('click', async () => {
     const text = $('node-status-text');
 
     if (result.installed && result.sufficient) {
-      // ✅ Sufficient
       dot.className = 'status-dot status-ok';
       text.textContent = result.version;
       btn.textContent = '已满足 ✓';
@@ -87,17 +110,14 @@ $('btn-check-node').addEventListener('click', async () => {
       state.nodeOk = true;
       log(`Node.js ${result.version} 已安装，版本满足要求 ✓`, 'success');
     } else if (result.installed && !result.sufficient) {
-      // ⚠️ Installed but too old
       dot.className = 'status-dot status-warn';
       text.textContent = `${result.version}（版本过低）`;
       btn.textContent = '前往下载 Node.js';
       btn.className = 'btn btn-warning';
       btn.disabled = false;
       log(`Node.js ${result.version} 版本过低，需要 >= 18，请升级`, 'warning');
-      // rebind click
       btn.onclick = () => openNodeDownload();
     } else {
-      // ❌ Not installed
       dot.className = 'status-dot status-error';
       text.textContent = '未安装';
       btn.textContent = '前往下载 Node.js';
@@ -152,7 +172,6 @@ $('btn-check-claude').addEventListener('click', async () => {
       btn.className = 'btn btn-primary';
       btn.disabled = false;
       log('Claude Code 未安装，点击「安装 Claude Code」按钮进行安装', 'info');
-      // Rebind to install
       btn.onclick = () => installClaude();
     }
   } catch (err) {
@@ -176,12 +195,10 @@ async function installClaude() {
   log('开始安装 Claude Code (npm install -g @anthropic-ai/claude-code)...', 'info');
   log('这可能需要1-3分钟，请耐心等待...', 'info');
 
-  // Setup streaming listener
   window.electronAPI.offInstallProgress();
   window.electronAPI.onInstallProgress((data) => {
     const text = (data.text || '').trim();
     if (!text) return;
-    // Split multi-line outputs
     text.split('\n').forEach(line => {
       const trimmed = line.trim();
       if (!trimmed) return;
@@ -199,7 +216,6 @@ async function installClaude() {
     const text = $('claude-status-text');
 
     if (result.success) {
-      // Verify installation
       const verifyResult = await window.electronAPI.checkClaude();
       dot.className = 'status-dot status-ok';
       text.textContent = verifyResult.installed ? verifyResult.version : '已安装';
@@ -234,16 +250,13 @@ async function installClaude() {
 
 // ─── Part 2: Config Section ──────────────────────────────────────
 
-// Init config section as disabled
 $('config-section').classList.add('config-disabled');
 $('config-section-header').classList.add('config-disabled');
 
-// Register link
 $('link-register').addEventListener('click', () => {
   window.electronAPI.openExternal('https://api.ppio.com');
 });
 
-// API Key visibility toggle
 const apiKeyInput = $('api-key');
 const toggleBtn = $('toggle-key');
 let keyVisible = false;
@@ -254,7 +267,6 @@ toggleBtn.addEventListener('click', () => {
   toggleBtn.textContent = keyVisible ? '🙈' : '👁';
 });
 
-// Live preview updates
 function updatePreview() {
   const key = apiKeyInput.value.trim();
   $('preview-key').textContent = key ? maskKey(key) : '（未填写）';
@@ -273,7 +285,6 @@ $('main-model').addEventListener('change', updatePreview);
 $('fast-model').addEventListener('change', updatePreview);
 updatePreview();
 
-// Apply config
 $('btn-apply').addEventListener('click', async () => {
   if ($('config-section').classList.contains('config-disabled')) {
     showToast('⚠️ 请先完成环境安装步骤');
@@ -312,7 +323,6 @@ $('btn-apply').addEventListener('click', async () => {
   }
 });
 
-// Restore config
 $('btn-restore').addEventListener('click', async () => {
   if ($('config-section').classList.contains('config-disabled')) {
     showToast('⚠️ 请先完成环境安装步骤');
@@ -426,3 +436,5 @@ function showToast(msg, duration = 2500) {
 
   log('PPIO Claude Setup 已启动，请按步骤完成配置', 'info');
 })();
+
+}); // end DOMContentLoaded
