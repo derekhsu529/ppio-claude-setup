@@ -139,38 +139,89 @@ ipcMain.handle('check-claude', async () => {
   return { installed: false, version: null };
 });
 
-// Install Node.js — macOS 用 brew，其他平台给下载链接
+// Install Node.js — 下载官方预编译包自动安装，不依赖任何第三方包管理器
+// 使用淘宝镜像加速下载
 ipcMain.handle('install-node', async (event) => {
-  return new Promise((resolve) => {
-    if (process.platform === 'darwin') {
-      // macOS: 先试 brew install node
-      const envWithPath = getEnvWithPath();
-      exec('which brew', { env: envWithPath, timeout: 5000 }, (err) => {
-        if (err) {
-          // 没有 Homebrew
-          resolve({ success: false, error: '未检测到 Homebrew，请先安装 Homebrew (https://brew.sh) 或手动安装 Node.js' });
-          return;
-        }
-        const child = spawn('brew', ['install', 'node'], { env: envWithPath, timeout: 300000, shell: true });
-        child.stdout.on('data', d => {
-          event.sender.send('install-progress', { type: 'stdout', text: d.toString() });
-        });
-        child.stderr.on('data', d => {
-          event.sender.send('install-progress', { type: 'stderr', text: d.toString() });
-        });
-        child.on('close', code => {
-          resolve(code === 0 ? { success: true } : { success: false, error: `brew 退出码 ${code}` });
-        });
-        child.on('error', e => resolve({ success: false, error: e.message }));
+  const NODE_VERSION = 'v22.14.0'; // LTS
+  const platform = process.platform;
+  const arch = process.arch; // x64 or arm64
+
+  const send = (text, type = 'stdout') => {
+    event.sender.send('install-progress', { type, text });
+  };
+
+  try {
+    if (platform === 'darwin') {
+      // macOS: 下载 .pkg 安装包并执行
+      const pkg = `node-${NODE_VERSION}-darwin-${arch}.pkg`;
+      const url = `https://npmmirror.com/mirrors/node/${NODE_VERSION}/${pkg}`;
+      const tmpPath = path.join(os.tmpdir(), pkg);
+
+      send(`正在下载 Node.js ${NODE_VERSION} (${arch})...`);
+      send(`下载地址: ${url}`);
+
+      // 用 curl 下载（macOS 自带 curl）
+      await new Promise((resolve, reject) => {
+        const dl = spawn('curl', ['-L', '-o', tmpPath, '--progress-bar', url], { timeout: 300000 });
+        dl.stderr.on('data', d => send(d.toString()));
+        dl.on('close', code => code === 0 ? resolve() : reject(new Error(`下载失败，退出码 ${code}`)));
+        dl.on('error', reject);
       });
-    } else if (process.platform === 'win32') {
-      // Windows: 引导用户下载
-      resolve({ success: false, error: 'Windows 请手动下载安装 Node.js' });
+
+      send('下载完成，正在安装...');
+
+      // 用 installer 安装 .pkg（需要管理员权限，会弹系统授权窗口）
+      await new Promise((resolve, reject) => {
+        const inst = spawn('open', [tmpPath], { timeout: 600000 });
+        inst.on('close', () => resolve());
+        inst.on('error', reject);
+      });
+
+      send('已打开 Node.js 安装程序，请在弹出的窗口中完成安装。');
+      send('安装完成后，点击「检测 Node.js」按钮验证。');
+      return { success: true, message: '安装程序已打开' };
+
+    } else if (platform === 'win32') {
+      // Windows: 下载 .msi 安装包并执行
+      const msi = `node-${NODE_VERSION}-${arch}.msi`;
+      const url = `https://npmmirror.com/mirrors/node/${NODE_VERSION}/${msi}`;
+      const tmpPath = path.join(os.tmpdir(), msi);
+
+      send(`正在下载 Node.js ${NODE_VERSION} (${arch})...`);
+
+      await new Promise((resolve, reject) => {
+        const dl = spawn('powershell', [
+          '-Command',
+          `Invoke-WebRequest -Uri '${url}' -OutFile '${tmpPath}' -UseBasicParsing`
+        ], { timeout: 300000, shell: true });
+        dl.stderr.on('data', d => send(d.toString(), 'stderr'));
+        dl.stdout.on('data', d => send(d.toString()));
+        dl.on('close', code => code === 0 ? resolve() : reject(new Error(`下载失败，退出码 ${code}`)));
+        dl.on('error', reject);
+      });
+
+      send('下载完成，正在启动安装程序...');
+
+      await new Promise((resolve, reject) => {
+        const inst = spawn('msiexec', ['/i', tmpPath], { timeout: 600000, shell: true });
+        inst.on('close', () => resolve());
+        inst.on('error', reject);
+      });
+
+      send('安装程序已启动，请完成安装后重新检测。');
+      return { success: true, message: '安装程序已打开' };
+
     } else {
       // Linux
-      resolve({ success: false, error: '请使用系统包管理器安装 Node.js' });
+      send('Linux 系统请使用包管理器安装：');
+      send('  Ubuntu/Debian: sudo apt install nodejs npm');
+      send('  CentOS/RHEL:   sudo yum install nodejs npm');
+      send('  或使用 nvm: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash');
+      return { success: false, error: '请使用系统包管理器安装 Node.js' };
     }
-  });
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
 });
 
 // Install Claude Code (streaming) — 使用淘宝 npm 镜像，国内可访问

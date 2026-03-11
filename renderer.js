@@ -147,29 +147,29 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.className = 'btn btn-secondary';
     log('开始安装 Node.js...', 'info');
 
+    // 监听安装进度
+    window.electronAPI.offInstallProgress();
+    window.electronAPI.onInstallProgress(data => {
+      (data.text || '').trim().split('\n').forEach(l => {
+        const t = l.trim();
+        if (t) log(t, data.type === 'stderr' ? 'warning' : 'info');
+      });
+    });
+
     try {
       const r = await window.electronAPI.installNode();
+      window.electronAPI.offInstallProgress();
+
       if (r.success) {
-        // 重新检测
-        const check = await window.electronAPI.checkNode();
-        const dot = $('node-status-badge').querySelector('.status-dot');
-        const txt = $('node-status-text');
-        if (check.installed && check.sufficient) {
-          dot.className = 'status-dot status-ok';
-          txt.textContent = check.version;
-          btn.textContent = '已满足 ✓';
-          btn.className = 'btn btn-success-static';
-          state.nodeOk = true;
-          log(`Node.js ${check.version} 安装成功 ✓`, 'success');
-        } else {
-          log('安装完成但版本检测异常，请重启本工具后重试', 'warning');
-          btn.textContent = '🔍 重新检测';
-          btn.className = 'btn btn-secondary';
-          btn.disabled = false;
-        }
+        // 安装程序已打开，让用户完成安装后重新检测
+        log('安装程序已启动，请按提示完成安装', 'success');
+        log('安装完成后点击下方按钮重新检测', 'info');
+        btn.textContent = '🔍 重新检测';
+        btn.className = 'btn btn-secondary';
+        btn.disabled = false;
+        btn.onclick = () => $('btn-check-node').click();
       } else {
-        log('自动安装失败: ' + (r.error || '未知'), 'error');
-        log('请手动安装：访问 https://npmmirror.com/mirrors/node/', 'warning');
+        log('安装失败: ' + (r.error || '未知'), 'error');
         btn.textContent = '前往下载';
         btn.className = 'btn btn-warning';
         btn.disabled = false;
@@ -179,6 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
       }
     } catch (e) {
+      window.electronAPI.offInstallProgress();
       log('安装出错: ' + e.message, 'error');
       btn.textContent = '重试';
       btn.className = 'btn btn-danger';
