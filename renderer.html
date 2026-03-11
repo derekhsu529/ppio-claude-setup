@@ -11,7 +11,7 @@
 
 <!-- Title Bar -->
 <div id="titlebar">
-  <span class="title">🦾 PPIO Claude Setup</span>
+  <span class="title">⚡ PPIO Claude Setup</span>
   <div class="controls">
     <button class="ctrl-btn" id="btn-min" title="最小化">─</button>
     <button class="ctrl-btn" id="btn-max" title="最大化">□</button>
@@ -22,156 +22,158 @@
 <!-- App Root -->
 <div id="app">
 
-  <!-- ═══ Screen 1: Welcome ═══ -->
-  <div id="screen-welcome" class="screen active">
-    <div class="welcome-logo">⚡</div>
-    <h1 class="welcome-title">PPIO Claude Setup</h1>
-    <p class="welcome-subtitle">
-      一键配置 Claude Code + PPIO 高速 API<br>
-      让 AI 编程助手以最低成本运行起来
-    </p>
+  <!-- ═══ Main Setup Screen ═══ -->
+  <div id="screen-main" class="screen active">
 
-    <div class="welcome-features">
-      <div class="feature-item">
-        <div class="feature-icon">🔑</div>
-        <div class="feature-text">
-          <h4>填入 API Key</h4>
-          <p>使用 PPIO 的 Claude API，成本更低速度更快</p>
+    <!-- ─── PART 1: Environment Setup ─── -->
+    <div class="section-header">
+      <span class="section-number">1</span>
+      <span class="section-title">环境安装</span>
+    </div>
+
+    <!-- Step 1: Node.js -->
+    <div class="step-card" id="card-node">
+      <div class="step-card-header">
+        <div class="step-badge-num">1</div>
+        <div class="step-card-info">
+          <div class="step-card-title">Node.js 运行环境</div>
+          <div class="step-card-desc">Claude Code 需要 Node.js 18 或以上版本</div>
+        </div>
+        <div class="status-badge" id="node-status-badge">
+          <span class="status-dot status-unknown"></span>
+          <span class="status-text" id="node-status-text">未检测</span>
         </div>
       </div>
-      <div class="feature-item">
-        <div class="feature-icon">🤖</div>
-        <div class="feature-text">
-          <h4>选择模型组合</h4>
-          <p>主模型 + 快速模型，自动优化响应速度</p>
-        </div>
-      </div>
-      <div class="feature-item">
-        <div class="feature-icon">✅</div>
-        <div class="feature-text">
-          <h4>一键写入环境变量</h4>
-          <p>Mac/Windows 自动适配，无需手动操作终端</p>
-        </div>
+      <div class="step-card-actions">
+        <button class="btn btn-secondary" id="btn-check-node">
+          🔍 检测 Node.js
+        </button>
       </div>
     </div>
 
-    <button class="btn btn-primary" id="btn-start" style="min-width:200px; font-size:15px; padding:14px 32px;">
-      开始配置 →
-    </button>
-
-    <p style="margin-top:16px; font-size:12px; color:var(--text-dim);">
-      已有账号？直接开始 · 无需联网即可运行
-    </p>
-  </div>
-
-  <!-- ═══ Screen 2: Setup ═══ -->
-  <div id="screen-setup" class="screen">
-
-    <!-- Steps bar -->
-    <div class="steps-bar">
-      <div class="step done" id="step1">
-        <div class="step-num">✓</div>
-        <span class="step-label">开始</span>
-      </div>
-      <div class="step-line"></div>
-      <div class="step active" id="step2">
-        <div class="step-num">2</div>
-        <span class="step-label">配置</span>
-      </div>
-      <div class="step-line"></div>
-      <div class="step" id="step3">
-        <div class="step-num">3</div>
-        <span class="step-label">完成</span>
-      </div>
-    </div>
-
-    <!-- API Key Card -->
-    <div class="card">
-      <div class="card-title">
-        🔑 PPIO API Key
-      </div>
-      <div class="card-desc">
-        登录 PPIO 控制台获取你的 API Key，格式为 <code style="color:var(--blue); background:var(--bg-input); padding:1px 6px; border-radius:4px; font-size:11px;">sk-...</code>
-      </div>
-
-      <div class="input-wrapper">
-        <input
-          type="password"
-          id="api-key"
-          placeholder="粘贴你的 PPIO API Key"
-          autocomplete="off"
-          spellcheck="false"
-        >
-        <button class="toggle-vis" id="toggle-key" title="显示/隐藏">👁</button>
-      </div>
-
-      <div class="inline-note" style="margin-top:12px;">
-        <span style="font-size:12px; color:var(--text-dim);">还没有账号？</span>
-        <a class="link" id="link-register">立即注册 PPIO →</a>
-      </div>
-    </div>
-
-    <!-- Model Selection Card -->
-    <div class="card">
-      <div class="card-title">
-        🤖 模型配置
-      </div>
-      <div class="card-desc">
-        主模型用于复杂任务，快速模型用于简单补全，建议按推荐设置。
-      </div>
-
-      <div class="model-grid">
-        <div class="model-field">
-          <label>主模型 (ANTHROPIC_MODEL)</label>
-          <select id="main-model">
-            <option value="pa/claude-sonnet-4-6" selected>claude-sonnet-4-6（推荐）</option>
-            <option value="pa/claude-opus-4-6">claude-opus-4-6（最强）</option>
-            <option value="pa/claude-haiku-4-5-20251001">claude-haiku-4-5（快速）</option>
-            <option value="moonshotai/kimi-k2-instruct">kimi-k2-instruct（国产）</option>
-          </select>
+    <!-- Step 2: Claude Code -->
+    <div class="step-card" id="card-claude">
+      <div class="step-card-header">
+        <div class="step-badge-num">2</div>
+        <div class="step-card-info">
+          <div class="step-card-title">Claude Code CLI</div>
+          <div class="step-card-desc">Anthropic 官方命令行 AI 编程助手</div>
         </div>
-        <div class="model-field">
-          <label>快速模型 (ANTHROPIC_SMALL_FAST_MODEL)</label>
-          <select id="fast-model">
-            <option value="pa/claude-haiku-4-5-20251001" selected>claude-haiku-4-5（推荐）</option>
-            <option value="pa/claude-sonnet-4-6">claude-sonnet-4-6</option>
-            <option value="pa/claude-opus-4-6">claude-opus-4-6</option>
-            <option value="moonshotai/kimi-k2-instruct">kimi-k2-instruct</option>
-          </select>
+        <div class="status-badge" id="claude-status-badge">
+          <span class="status-dot status-unknown"></span>
+          <span class="status-text" id="claude-status-text">未检测</span>
+        </div>
+      </div>
+      <div class="step-card-actions">
+        <button class="btn btn-secondary" id="btn-check-claude">
+          🔍 检测 Claude Code
+        </button>
+      </div>
+    </div>
+
+    <!-- Environment Ready Banner -->
+    <div class="env-ready-banner" id="env-ready-banner" style="display:none;">
+      ✅ 环境已就绪，请继续配置 API
+    </div>
+
+    <!-- ─── PART 2: API Config ─── -->
+    <div class="section-header" id="config-section-header">
+      <span class="section-number">2</span>
+      <span class="section-title">环境变量配置</span>
+    </div>
+
+    <div id="config-section" class="config-section-wrap">
+
+      <!-- API Key Card -->
+      <div class="card">
+        <div class="card-title">🔑 PPIO API Key</div>
+        <div class="card-desc">
+          登录 PPIO 控制台获取你的 API Key，格式为
+          <code class="inline-code">sk-...</code>
+        </div>
+
+        <div class="input-wrapper">
+          <input
+            type="password"
+            id="api-key"
+            placeholder="粘贴你的 PPIO API Key"
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <button class="toggle-vis" id="toggle-key" title="显示/隐藏">👁</button>
+        </div>
+
+        <div class="inline-note" style="margin-top:12px;">
+          <span style="font-size:12px; color:var(--text-dim);">还没有账号？</span>
+          <a class="link" id="link-register">立即注册 PPIO →</a>
         </div>
       </div>
 
-      <!-- Config preview -->
-      <div style="margin-top:16px; background:var(--bg-input); border-radius:var(--radius-sm); padding:14px 16px; border:1px solid var(--border);">
-        <div style="font-size:11px; color:var(--text-dim); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.06em;">将写入以下环境变量</div>
-        <div style="font-family: 'SF Mono', 'Consolas', monospace; font-size:12px; color:var(--text-muted); line-height:1.9;">
-          <div><span style="color:var(--text-dim)">ANTHROPIC_BASE_URL</span> = <span style="color:var(--blue)">https://api.ppio.com/anthropic</span></div>
-          <div><span style="color:var(--text-dim)">ANTHROPIC_AUTH_TOKEN</span> = <span id="preview-key" style="color:var(--warning)">（未填写）</span></div>
-          <div><span style="color:var(--text-dim)">ANTHROPIC_MODEL</span> = <span id="preview-main" style="color:var(--success)">pa/claude-sonnet-4-6</span></div>
-          <div><span style="color:var(--text-dim)">ANTHROPIC_SMALL_FAST_MODEL</span> = <span id="preview-fast" style="color:var(--success)">pa/claude-haiku-4-5-20251001</span></div>
+      <!-- Model Selection Card -->
+      <div class="card">
+        <div class="card-title">🤖 模型配置</div>
+        <div class="card-desc">
+          主模型用于复杂任务，快速模型用于简单补全。
+        </div>
+
+        <div class="model-grid">
+          <div class="model-field">
+            <label>主模型 (ANTHROPIC_MODEL)</label>
+            <select id="main-model">
+              <option value="pa/claude-sonnet-4-6" selected>claude-sonnet-4-6 ⭐ 推荐</option>
+              <option value="pa/claude-opus-4-6">claude-opus-4-6（最强，慢）</option>
+              <option value="pa/claude-haiku-4-5-20251001">claude-haiku-4-5（快速，轻量）</option>
+              <option value="moonshotai/kimi-k2-instruct">kimi-k2-instruct（国产）</option>
+            </select>
+          </div>
+          <div class="model-field">
+            <label>快速模型 (ANTHROPIC_SMALL_FAST_MODEL)</label>
+            <select id="fast-model">
+              <option value="pa/claude-haiku-4-5-20251001" selected>claude-haiku-4-5 ⭐ 推荐</option>
+              <option value="pa/claude-sonnet-4-6">claude-sonnet-4-6</option>
+              <option value="pa/claude-opus-4-6">claude-opus-4-6</option>
+              <option value="moonshotai/kimi-k2-instruct">kimi-k2-instruct</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Config preview -->
+        <div class="config-preview">
+          <div class="config-preview-label">将写入以下环境变量</div>
+          <div class="config-preview-body">
+            <div><span class="env-key">ANTHROPIC_BASE_URL</span> = <span class="env-val-blue">https://api.ppio.com/anthropic</span></div>
+            <div><span class="env-key">ANTHROPIC_AUTH_TOKEN</span> = <span id="preview-key" class="env-val-warn">（未填写）</span></div>
+            <div><span class="env-key">ANTHROPIC_MODEL</span> = <span id="preview-main" class="env-val-green">pa/claude-sonnet-4-6</span></div>
+            <div><span class="env-key">ANTHROPIC_SMALL_FAST_MODEL</span> = <span id="preview-fast" class="env-val-green">pa/claude-haiku-4-5-20251001</span></div>
+          </div>
         </div>
       </div>
+
+      <!-- Action Buttons -->
+      <div class="action-row">
+        <button class="btn btn-primary" id="btn-apply">
+          ⚡ 一键写入配置
+        </button>
+        <button class="btn btn-danger" id="btn-restore" title="清除所有 PPIO 相关环境变量">
+          🗑 清除配置
+        </button>
+      </div>
+
+    </div><!-- /#config-section -->
+
+    <!-- ─── Log Area ─── -->
+    <div class="log-section">
+      <div class="log-header">
+        <span class="log-title">📋 日志</span>
+        <button class="btn-clear-log" id="btn-clear-log">清空</button>
+      </div>
+      <div class="log-body" id="log-body"></div>
     </div>
 
-    <!-- Action Buttons -->
-    <div class="action-row">
-      <button class="btn btn-primary" id="btn-apply">
-        ⚡ 一键写入配置
-      </button>
-      <button class="btn btn-danger" id="btn-restore" title="清除所有 PPIO 相关环境变量">
-        🗑 清除配置
-      </button>
-    </div>
+  </div><!-- /#screen-main -->
 
-    <div style="text-align:center;">
-      <button class="btn btn-ghost" id="btn-back">← 返回</button>
-    </div>
-
-  </div>
-
-  <!-- ═══ Screen 3: Result ═══ -->
+  <!-- ═══ Result Screen ═══ -->
   <div id="screen-result" class="screen">
-
     <div class="result-icon" id="result-icon">✅</div>
     <h2 class="result-title" id="result-title">配置成功！</h2>
     <p class="result-message" id="result-message"></p>
@@ -179,17 +181,17 @@
     <div class="next-steps" id="result-next-steps">
       <h3>接下来的步骤</h3>
       <div class="next-step-item">
-        <div class="step-badge">1</div>
+        <div class="step-num-badge">1</div>
         <div class="step-content" id="next-step-1">重启终端（Mac: 关闭并重新打开 Terminal）</div>
       </div>
       <div class="next-step-item">
-        <div class="step-badge">2</div>
+        <div class="step-num-badge">2</div>
         <div class="step-content">
           验证配置：运行 <code>echo $ANTHROPIC_AUTH_TOKEN</code>，应显示你的 API Key
         </div>
       </div>
       <div class="next-step-item">
-        <div class="step-badge">3</div>
+        <div class="step-num-badge">3</div>
         <div class="step-content">
           启动 Claude Code：<code>claude</code>
         </div>
@@ -197,10 +199,9 @@
     </div>
 
     <div class="result-actions">
-      <button class="btn btn-primary" id="btn-result-back">← 修改配置</button>
+      <button class="btn btn-primary" id="btn-result-back">← 返回修改</button>
       <button class="btn btn-secondary" id="btn-done">完成</button>
     </div>
-
   </div>
 
 </div><!-- /#app -->
@@ -208,7 +209,7 @@
 <!-- Loading Overlay -->
 <div class="loading-overlay" id="loading-overlay">
   <div class="spinner"></div>
-  <span class="loading-text" id="loading-text">正在写入配置...</span>
+  <span class="loading-text" id="loading-text">处理中...</span>
 </div>
 
 <!-- Toast -->

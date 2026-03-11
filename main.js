@@ -2,16 +2,16 @@ const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 
 let mainWindow;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 800,
-    height: 620,
-    minWidth: 720,
-    minHeight: 580,
+    width: 700,
+    height: 820,
+    minWidth: 660,
+    minHeight: 700,
     resizable: true,
     frame: false,
     titleBarStyle: 'hidden',
@@ -60,6 +60,108 @@ ipcMain.on('window-close', () => mainWindow.close());
 ipcMain.on('open-external', (event, url) => {
   shell.openExternal(url);
 });
+
+// Open URL in browser (alias)
+ipcMain.handle('open-url', async (event, url) => {
+  shell.openExternal(url);
+  return { success: true };
+});
+
+// ─── Environment Detection ──────────────────────────────────────
+
+// Check Node.js version
+ipcMain.handle('check-node', async () => {
+  return new Promise((resolve) => {
+    // Try multiple paths for cross-platform compatibility
+    const cmd = process.platform === 'win32' ? 'node.exe --version' : 'node --version';
+    exec(cmd, { timeout: 10000, env: getEnvWithPath() }, (error, stdout, stderr) => {
+      if (error) {
+        resolve({ installed: false, version: null, sufficient: false });
+        return;
+      }
+      const raw = (stdout || '').trim();
+      // Parse version like v18.17.0
+      const match = raw.match(/v?(\d+)\.(\d+)\.(\d+)/);
+      if (!match) {
+        resolve({ installed: false, version: null, sufficient: false });
+        return;
+      }
+      const major = parseInt(match[1], 10);
+      const version = `v${match[1]}.${match[2]}.${match[3]}`;
+      resolve({
+        installed: true,
+        version,
+        sufficient: major >= 18
+      });
+    });
+  });
+});
+
+// Check Claude Code version
+ipcMain.handle('check-claude', async () => {
+  return new Promise((resolve) => {
+    const cmd = process.platform === 'win32' ? 'claude.cmd --version' : 'claude --version';
+    exec(cmd, { timeout: 10000, env: getEnvWithPath() }, (error, stdout, stderr) => {
+      if (error) {
+        resolve({ installed: false, version: null });
+        return;
+      }
+      const raw = (stdout || stderr || '').trim();
+      // claude --version outputs something like "1.0.5"
+      const match = raw.match(/(\d+\.\d+[\.\d]*)/);
+      const version = match ? match[1] : raw;
+      resolve({ installed: true, version: version || 'unknown' });
+    });
+  });
+});
+
+// Install Claude Code (streaming)
+ipcMain.handle('install-claude', async (event) => {
+  return new Promise((resolve) => {
+    const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+    const child = spawn(npmCmd, ['install', '-g', '@anthropic-ai/claude-code'], {
+      env: getEnvWithPath(),
+      timeout: 120000
+    });
+
+    child.stdout.on('data', (data) => {
+      event.sender.send('install-progress', { type: 'stdout', text: data.toString() });
+    });
+
+    child.stderr.on('data', (data) => {
+      event.sender.send('install-progress', { type: 'stderr', text: data.toString() });
+    });
+
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve({ success: true });
+      } else {
+        resolve({ success: false, error: `npm exited with code ${code}` });
+      }
+    });
+
+    child.on('error', (err) => {
+      resolve({ success: false, error: err.message });
+    });
+  });
+});
+
+// Helper: get env with common PATH additions
+function getEnvWithPath() {
+  const env = { ...process.env };
+  const extraPaths = [
+    '/usr/local/bin',
+    '/usr/bin',
+    '/bin',
+    `${os.homedir()}/.nvm/versions/node/current/bin`,
+    `${os.homedir()}/.local/bin`,
+    'C:\\Program Files\\nodejs',
+    'C:\\Program Files (x86)\\nodejs'
+  ];
+  const sep = process.platform === 'win32' ? ';' : ':';
+  env.PATH = (env.PATH || '') + sep + extraPaths.join(sep);
+  return env;
+}
 
 // Apply configuration
 ipcMain.handle('apply-config', async (event, config) => {
@@ -125,7 +227,6 @@ function removeEnvBlock(content) {
   const startIdx = content.indexOf(PPIO_MARKER_START);
   const endIdx = content.indexOf(PPIO_MARKER_END);
   if (startIdx === -1 || endIdx === -1) return content;
-  // Remove from the newline before start marker to end of end marker line
   const before = content.substring(0, startIdx).replace(/\n+$/, '');
   const after = content.substring(endIdx + PPIO_MARKER_END.length).replace(/^\n/, '');
   return before + '\n' + after;
@@ -142,19 +243,13 @@ function applyConfigMac(config) {
 
   for (const filePath of files) {
     try {
-      // Create file if it doesn't exist
       if (!fs.existsSync(filePath)) {
         fs.writeFileSync(filePath, '', 'utf8');
       }
 
       let content = fs.readFileSync(filePath, 'utf8');
-
-      // Remove existing block if present
       content = removeEnvBlock(content);
-
-      // Append new block
       content = content.trimEnd() + buildEnvBlock(config);
-
       fs.writeFileSync(filePath, content, 'utf8');
       updated.push(filePath);
     } catch (err) {
@@ -256,7 +351,6 @@ function restoreConfigWindows() {
     const fullCommand = commands.join(' & ');
 
     exec(fullCommand, { shell: 'cmd.exe' }, (error, stdout, stderr) => {
-      // REG DELETE returns error if key doesn't exist — treat as partial success
       resolve({
         success: true,
         message: `✅ 已尝试清除以下环境变量：\n${keys.join('\n')}\n\n⚠️ 请重启 CMD/PowerShell 窗口使变更生效。`
