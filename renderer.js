@@ -449,7 +449,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   $('btn-result-back').addEventListener('click', () => showScreen('main'));
-  $('btn-done').addEventListener('click',        () => window.electronAPI.close());
+  $('btn-done').addEventListener('click',        () => showScreen('main'));
 
   // ─── Loading ─────────────────────────────────────────────────
   function showLoading(text) {
