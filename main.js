@@ -151,7 +151,7 @@ ipcMain.handle('install-node', async (event) => {
           resolve({ success: false, error: '未检测到 Homebrew，请先安装 Homebrew (https://brew.sh) 或手动安装 Node.js' });
           return;
         }
-        const child = spawn('brew', ['install', 'node'], { env: envWithPath, timeout: 300000 });
+        const child = spawn('brew', ['install', 'node'], { env: envWithPath, timeout: 300000, shell: true });
         child.stdout.on('data', d => {
           event.sender.send('install-progress', { type: 'stdout', text: d.toString() });
         });
@@ -178,12 +178,14 @@ ipcMain.handle('install-claude', async (event) => {
   return new Promise((resolve) => {
     const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
     // 使用淘宝镜像 npmmirror，避免被墙
+    // shell: true 确保 spawn 能通过 PATH 找到 npm（Electron 打包后必需）
     const child = spawn(npmCmd, [
       'install', '-g', '@anthropic-ai/claude-code',
       '--registry', 'https://registry.npmmirror.com'
     ], {
       env: getEnvWithPath(),
-      timeout: 180000  // 国内镜像也可能慢，适当延长超时
+      timeout: 180000,
+      shell: true
     });
 
     child.stdout.on('data', (data) => {
