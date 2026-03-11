@@ -1,6 +1,6 @@
 {
   "name": "ppio-claude-setup",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "一键配置 Claude Code + PPIO API 环境变量的图形化工具",
   "main": "main.js",
   "scripts": {
@@ -33,6 +33,7 @@
     },
     "files": [
       "main.js",
+      "preload.js",
       "renderer.html",
       "renderer.js",
       "styles.css",

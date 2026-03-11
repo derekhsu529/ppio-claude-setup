@@ -232,6 +232,21 @@ const rendererContentForMirror = fs.readFileSync('/root/.openclaw/workspace/proj
 assert(rendererContentForMirror.includes('npmmirror.com/mirrors/node'), 'Node.js 下载链接使用淘宝镜像');
 assert(!rendererContentForMirror.includes('nodejs.org/en/download'), 'Node.js 下载不用官网（可能慢/被墙）');
 
+// ─── SUITE 6.8: 打包配置检查 ────────────────────────────────────
+console.log('\n📋 Suite 6.8: 打包配置检查');
+
+const pkg = JSON.parse(fs.readFileSync('/root/.openclaw/workspace/projects/ppio-claude-setup/package.json', 'utf8'));
+const buildFiles = pkg.build && pkg.build.files;
+assert(Array.isArray(buildFiles), 'build.files 是数组');
+assert(buildFiles.includes('preload.js'), 'preload.js 在 build.files 列表中（必须打包进 asar）');
+assert(buildFiles.includes('main.js'), 'main.js 在 build.files 列表中');
+assert(buildFiles.includes('renderer.js'), 'renderer.js 在 build.files 列表中');
+assert(buildFiles.includes('renderer.html'), 'renderer.html 在 build.files 列表中');
+assert(buildFiles.includes('styles.css'), 'styles.css 在 build.files 列表中');
+
+// renderer.js 必须有 electronAPI 防御检查
+assert(rendererContent.includes("typeof window.electronAPI === 'undefined'"), 'renderer.js 有 electronAPI undefined 防御');
+
 // ─── SUITE 7: main.js Windows 逻辑 ──────────────────────────────
 console.log('\n📋 Suite 7: main.js Windows 逻辑检查');
 
