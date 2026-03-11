@@ -64,6 +64,6 @@
         { "x": 130, "y": 150, "type": "file" }
       ]
     },
-    "publish": "never"
+    "publish": null
   }
 }
