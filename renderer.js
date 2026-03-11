@@ -29,8 +29,21 @@ document.addEventListener('DOMContentLoaded', () => {
   // ─── Helpers ────────────────────────────────────────────────
   const $ = id => document.getElementById(id);
 
+  // ─── Guard: electronAPI must exist ──────────────────────────
+  if (typeof window.electronAPI === 'undefined') {
+    const body = $('log-body');
+    if (body) {
+      const d = document.createElement('div');
+      d.className = 'log-line log-error';
+      d.textContent = '[FATAL] window.electronAPI 未加载，preload.js 可能未正确注入。请重新下载最新版本。';
+      body.appendChild(d);
+    }
+    console.error('[FATAL] electronAPI undefined — preload.js 未注入');
+    return; // 终止，避免后续全部报错
+  }
+
   // ─── Platform: show correct titlebar controls ────────────────
-  const platform = window.electronAPI.platform;
+  const platform = window.electronAPI.platform || 'unknown';
   const isMac = platform === 'darwin';
 
   if (isMac) {
@@ -456,7 +469,15 @@ document.addEventListener('DOMContentLoaded', () => {
       // ignore
     }
 
-    log('PPIO Claude Setup 已启动，按步骤完成配置', 'info');
+    // 显示版本号
+    try {
+      const ver = await window.electronAPI.getVersion();
+      const tag = $('version-tag');
+      if (tag) tag.textContent = 'v' + ver;
+      log(`PPIO Claude Setup v${ver} 已启动，按步骤完成配置`, 'info');
+    } catch (e) {
+      log('PPIO Claude Setup 已启动，按步骤完成配置', 'info');
+    }
   })();
 
 }); // end DOMContentLoaded

@@ -31,5 +31,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   checkConfig: () => ipcRenderer.invoke('check-config'),
 
   // Platform info
-  platform: process.platform
+  platform: process.platform,
+
+  // App version (from package.json via electron)
+  getVersion: () => ipcRenderer.invoke('get-version')
 });

@@ -75,6 +75,14 @@ html, body {
   margin-left: auto;
 }
 
+/* Version tag in title bar */
+.version-tag {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-weight: 400;
+  margin-left: 4px;
+}
+
 #titlebar .controls {
   display: flex;
   gap: 8px;

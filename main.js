@@ -67,6 +67,9 @@ ipcMain.handle('open-url', async (event, url) => {
   return { success: true };
 });
 
+// App version
+ipcMain.handle('get-version', () => app.getVersion());
+
 // ─── Environment Detection ──────────────────────────────────────
 
 // Check Node.js version
