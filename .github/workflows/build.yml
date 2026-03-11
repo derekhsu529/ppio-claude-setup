@@ -1,0 +1,151 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build-mac:
+    name: Build macOS
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create placeholder icons (if not exist)
+        run: |
+          mkdir -p assets
+          # Create minimal placeholder icons if real ones don't exist
+          if [ ! -f assets/icon.icns ]; then
+            # Use a simple python script to create a minimal ICNS placeholder
+            python3 -c "
+import struct, zlib, os
+# Create a minimal 1x1 PNG
+sig = b'\x89PNG\r\n\x1a\n'
+ihdr_data = struct.pack('>IIBBBBB', 1, 1, 8, 2, 0, 0, 0)
+ihdr_crc = zlib.crc32(b'IHDR' + ihdr_data) & 0xffffffff
+ihdr = struct.pack('>I', 13) + b'IHDR' + ihdr_data + struct.pack('>I', ihdr_crc)
+idat_data = zlib.compress(b'\x00\x00\x00\x00')
+idat_crc = zlib.crc32(b'IDAT' + idat_data) & 0xffffffff
+idat = struct.pack('>I', len(idat_data)) + b'IDAT' + idat_data + struct.pack('>I', idat_crc)
+iend_crc = zlib.crc32(b'IEND') & 0xffffffff
+iend = struct.pack('>I', 0) + b'IEND' + struct.pack('>I', iend_crc)
+png = sig + ihdr + idat + iend
+with open('/tmp/icon.png', 'wb') as f:
+    f.write(png)
+print('PNG created')
+"
+            # Convert PNG to icns using sips
+            sips -s format icns /tmp/icon.png --out assets/icon.icns 2>/dev/null || \
+              cp /tmp/icon.png assets/icon.png
+          fi
+
+      - name: Build macOS DMG
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run build:mac
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-dmg
+          path: dist/*.dmg
+
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create placeholder icon
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path assets | Out-Null
+          if (-not (Test-Path "assets\icon.ico")) {
+            # Create a minimal valid ICO file (1x1 pixel)
+            $bytes = [byte[]](0,0,1,0,1,0,1,1,0,0,1,0,24,0,40,0,0,0,40,0,0,0,1,0,0,0,2,0,0,0,1,0,24,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+            [System.IO.File]::WriteAllBytes("assets\icon.ico", $bytes)
+          }
+
+      - name: Build Windows installer
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run build:win
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: dist/*.exe
+
+  release:
+    name: Create GitHub Release
+    needs: [build-mac, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List artifacts
+        run: find artifacts -type f | sort
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "PPIO Claude Setup ${{ github.ref_name }}"
+          body: |
+            ## 📦 PPIO Claude Setup ${{ github.ref_name }}
+
+            一键配置 Claude Code + PPIO API 环境变量的图形化工具
+
+            ### 下载
+
+            | 平台 | 文件 | 说明 |
+            |------|------|------|
+            | 🍎 macOS | `PPIO-Claude-Setup-*.dmg` | 支持 Intel & Apple Silicon |
+            | 🪟 Windows | `PPIO-Claude-Setup-Setup-*.exe` | Windows 10/11 64位 |
+
+            ### 使用方法
+
+            1. 下载对应平台的安装包
+            2. macOS: 打开 DMG，拖拽到 Applications
+            3. Windows: 运行 exe 安装向导
+            4. 启动应用，按步骤填写 API Key 并点击「一键写入配置」
+
+            ### 变更日志
+
+            - 初始版本发布
+          files: |
+            artifacts/**/*.dmg
+            artifacts/**/*.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
