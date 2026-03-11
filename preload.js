@@ -27,6 +27,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   // Config operations
+  detectExistingVars: () => ipcRenderer.invoke('detect-existing-vars'),
   applyConfig: (config) => ipcRenderer.invoke('apply-config', config),
   restoreConfig: () => ipcRenderer.invoke('restore-config'),
   checkConfig: () => ipcRenderer.invoke('check-config'),

@@ -445,6 +445,62 @@ function commentOutExistingVars(content) {
   return result.join('\n');
 }
 
+// 扫描配置文件中已有的 ANTHROPIC_* 变量（marker 块外的）
+function detectExistingVars() {
+  const home = os.homedir();
+  const files = [
+    path.join(home, '.zshrc'),
+    path.join(home, '.bash_profile')
+  ];
+
+  const found = []; // { file, variable, value, line }
+
+  for (const filePath of files) {
+    if (!fs.existsSync(filePath)) continue;
+    try {
+      const content = fs.readFileSync(filePath, 'utf8');
+      const lines = content.split('\n');
+      let inBlock = false;
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (line.includes(PPIO_MARKER_START)) inBlock = true;
+        if (line.includes(PPIO_MARKER_END)) { inBlock = false; continue; }
+        if (inBlock) continue;
+        const trimmed = line.trim();
+        if (trimmed.startsWith('#')) continue;
+        for (const v of MANAGED_VARS) {
+          if (trimmed.startsWith(`export ${v}=`) || trimmed.startsWith(`${v}=`)) {
+            const match = trimmed.match(/=\s*["']?([^"'\n]*)["']?/);
+            found.push({
+              file: path.basename(filePath),
+              variable: v,
+              value: match ? match[1] : '(unknown)',
+              lineNum: i + 1
+            });
+          }
+        }
+      }
+    } catch (e) { /* skip */ }
+  }
+
+  return found;
+}
+
+// IPC: 检测已有配置
+ipcMain.handle('detect-existing-vars', async () => {
+  if (process.platform === 'win32') {
+    // Windows: 检测注册表中的环境变量
+    const found = [];
+    for (const v of MANAGED_VARS) {
+      if (process.env[v]) {
+        found.push({ file: '系统环境变量', variable: v, value: process.env[v] });
+      }
+    }
+    return found;
+  }
+  return detectExistingVars();
+});
+
 function applyConfigMac(config) {
   const files = [
     path.join(os.homedir(), '.zshrc'),

@@ -377,6 +377,24 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // 检测已有配置，提示用户
+    try {
+      const existing = await window.electronAPI.detectExistingVars();
+      if (existing && existing.length > 0) {
+        const details = existing.map(e =>
+          `  • ${e.variable} = ${e.value.length > 20 ? e.value.slice(0, 10) + '...' + e.value.slice(-6) : e.value}  (${e.file})`
+        ).join('\n');
+        const ok = confirm(
+          `检测到配置文件中已有以下环境变量：\n\n${details}\n\n` +
+          `写入新配置会将这些旧值注释掉（备份保留），是否继续？`
+        );
+        if (!ok) {
+          log('用户取消写入', 'warning');
+          return;
+        }
+      }
+    } catch (e) { /* 检测失败不阻断 */ }
+
     showLoading('正在写入环境变量...');
     log('开始写入配置...');
 
@@ -399,7 +417,20 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('⚠️ 请先完成环境安装步骤');
       return;
     }
-    if (!confirm('确定要清除所有 PPIO 相关环境变量吗？')) return;
+    // 检测当前有哪些配置会被清除
+    let clearMsg = '确定要清除所有 PPIO 相关环境变量吗？';
+    try {
+      const existing = await window.electronAPI.detectExistingVars();
+      if (existing && existing.length > 0) {
+        const details = existing.map(e =>
+          `  • ${e.variable}  (${e.file})`
+        ).join('\n');
+        clearMsg = `将清除以下环境变量配置：\n\n${details}\n\n` +
+          `注意：只会移除 PPIO 配置块，被注释掉的旧配置不会恢复。\n确定要清除吗？`;
+      }
+    } catch (e) { /* ignore */ }
+
+    if (!confirm(clearMsg)) return;
 
     showLoading('正在清除配置...');
     log('开始清除配置...');
