@@ -1,6 +1,29 @@
 /* renderer.js — frontend logic */
 'use strict';
 
+// 全局错误捕获 — 防止任何错误无声吞掉
+window.onerror = (msg, src, line, col, err) => {
+  const body = document.getElementById('log-body');
+  if (body) {
+    const d = document.createElement('div');
+    d.className = 'log-line log-error';
+    d.textContent = `[JS ERROR] ${msg} (${src}:${line})`;
+    body.appendChild(d);
+  }
+  console.error('[renderer error]', msg, src, line, err);
+};
+
+window.onunhandledrejection = (e) => {
+  const body = document.getElementById('log-body');
+  if (body) {
+    const d = document.createElement('div');
+    d.className = 'log-line log-error';
+    d.textContent = `[Promise ERROR] ${e.reason}`;
+    body.appendChild(d);
+  }
+  console.error('[unhandled rejection]', e.reason);
+};
+
 document.addEventListener('DOMContentLoaded', () => {
 
   // ─── Helpers ────────────────────────────────────────────────
