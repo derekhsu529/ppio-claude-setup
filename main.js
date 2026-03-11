@@ -115,13 +115,17 @@ ipcMain.handle('check-claude', async () => {
   });
 });
 
-// Install Claude Code (streaming)
+// Install Claude Code (streaming) — 使用淘宝 npm 镜像，国内可访问
 ipcMain.handle('install-claude', async (event) => {
   return new Promise((resolve) => {
     const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-    const child = spawn(npmCmd, ['install', '-g', '@anthropic-ai/claude-code'], {
+    // 使用淘宝镜像 npmmirror，避免被墙
+    const child = spawn(npmCmd, [
+      'install', '-g', '@anthropic-ai/claude-code',
+      '--registry', 'https://registry.npmmirror.com'
+    ], {
       env: getEnvWithPath(),
-      timeout: 120000
+      timeout: 180000  // 国内镜像也可能慢，适当延长超时
     });
 
     child.stdout.on('data', (data) => {

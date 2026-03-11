@@ -182,6 +182,17 @@ const { execSync } = require('child_process');
 const identify = execSync('python3 -c "from PIL import Image; img = Image.open(\'/root/.openclaw/workspace/projects/ppio-claude-setup/assets/icon.png\'); print(img.size)"').toString().trim();
 assertEq(identify, '(1024, 1024)', 'icon.png 尺寸 1024x1024');
 
+// ─── SUITE 6.5: 国内镜像配置检查 ────────────────────────────────
+console.log('\n📋 Suite 6.5: 国内镜像配置检查');
+
+const mainContentForMirror = fs.readFileSync('/root/.openclaw/workspace/projects/ppio-claude-setup/main.js', 'utf8');
+assert(mainContentForMirror.includes('registry.npmmirror.com'), 'npm 安装使用淘宝镜像');
+assert(!mainContentForMirror.includes('registry.npmjs.org'), 'npm 没有写死官方源（可能被墙）');
+
+const rendererContentForMirror = fs.readFileSync('/root/.openclaw/workspace/projects/ppio-claude-setup/renderer.js', 'utf8');
+assert(rendererContentForMirror.includes('npmmirror.com/mirrors/node'), 'Node.js 下载链接使用淘宝镜像');
+assert(!rendererContentForMirror.includes('nodejs.org/en/download'), 'Node.js 下载不用官网（可能慢/被墙）');
+
 // ─── SUITE 7: main.js Windows 逻辑 ──────────────────────────────
 console.log('\n📋 Suite 7: main.js Windows 逻辑检查');
 

@@ -136,8 +136,9 @@ $('btn-check-node').addEventListener('click', async () => {
 });
 
 function openNodeDownload() {
-  window.electronAPI.openExternal('https://nodejs.org/en/download/');
-  log('已打开 Node.js 下载页面，下载完成后请重新打开本工具', 'warning');
+  // 使用淘宝 Node.js 镜像，国内访问更快
+  window.electronAPI.openExternal('https://npmmirror.com/mirrors/node/');
+  log('已打开 Node.js 下载页面（淘宝镜像），下载完成后请重新打开本工具', 'warning');
 }
 
 // ─── Part 1: Claude Code Detection & Install ─────────────────────
@@ -192,7 +193,7 @@ async function installClaude() {
   btn.textContent = '⏳ 安装中...';
   btn.className = 'btn btn-secondary btn-loading';
 
-  log('开始安装 Claude Code (npm install -g @anthropic-ai/claude-code)...', 'info');
+  log('开始安装 Claude Code（通过淘宝 npm 镜像，国内网络可用）...', 'info');
   log('这可能需要1-3分钟，请耐心等待...', 'info');
 
   window.electronAPI.offInstallProgress();
