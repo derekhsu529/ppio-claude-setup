@@ -11,17 +11,17 @@
 
 <!-- Title Bar -->
 <div id="titlebar">
-  <!-- macOS: traffic light buttons on LEFT -->
-  <div class="controls controls-mac" id="controls-mac">
+  <!-- macOS: traffic light buttons on LEFT (hidden by default, shown by JS) -->
+  <div class="controls controls-mac" id="controls-mac" style="display:none;">
     <button class="mac-btn mac-close" id="btn-close" title="关闭"></button>
-    <button class="mac-btn mac-min" id="btn-min" title="最小化"></button>
-    <button class="mac-btn mac-max" id="btn-max" title="最大化"></button>
+    <button class="mac-btn mac-min"   id="btn-min"   title="最小化"></button>
+    <button class="mac-btn mac-max"   id="btn-max"   title="最大化"></button>
   </div>
   <span class="title">⚡ PPIO Claude Setup</span>
-  <!-- Windows: buttons on RIGHT -->
-  <div class="controls controls-win" id="controls-win">
-    <button class="ctrl-btn" id="btn-min-win" title="最小化">─</button>
-    <button class="ctrl-btn" id="btn-max-win" title="最大化">□</button>
+  <!-- Windows/Linux: buttons on RIGHT (hidden by default, shown by JS) -->
+  <div class="controls controls-win" id="controls-win" style="display:none;">
+    <button class="ctrl-btn"       id="btn-min-win"   title="最小化">─</button>
+    <button class="ctrl-btn"       id="btn-max-win"   title="最大化">□</button>
     <button class="ctrl-btn close" id="btn-close-win" title="关闭">✕</button>
   </div>
 </div>
@@ -52,9 +52,7 @@
         </div>
       </div>
       <div class="step-card-actions">
-        <button class="btn btn-secondary" id="btn-check-node">
-          🔍 检测 Node.js
-        </button>
+        <button class="btn btn-secondary" id="btn-check-node">🔍 检测 Node.js</button>
       </div>
     </div>
 
@@ -64,7 +62,7 @@
         <div class="step-badge-num">2</div>
         <div class="step-card-info">
           <div class="step-card-title">Claude Code CLI</div>
-          <div class="step-card-desc">Anthropic 官方命令行 AI 编程助手（使用淘宝镜像安装，国内可用）</div>
+          <div class="step-card-desc">Anthropic 官方命令行 AI 编程助手（通过淘宝镜像安装，国内可用）</div>
         </div>
         <div class="status-badge" id="claude-status-badge">
           <span class="status-dot status-unknown"></span>
@@ -72,9 +70,7 @@
         </div>
       </div>
       <div class="step-card-actions">
-        <button class="btn btn-secondary" id="btn-check-claude">
-          🔍 检测 Claude Code
-        </button>
+        <button class="btn btn-secondary" id="btn-check-claude">🔍 检测 Claude Code</button>
       </div>
     </div>
 
@@ -89,7 +85,7 @@
       <span class="section-title">环境变量配置</span>
     </div>
 
-    <div id="config-section" class="config-section-wrap">
+    <div id="config-section" class="config-section-wrap config-disabled">
 
       <!-- API Key Card -->
       <div class="card">
@@ -98,7 +94,6 @@
           登录 PPIO 控制台获取你的 API Key，格式为
           <code class="inline-code">sk-...</code>
         </div>
-
         <div class="input-wrapper">
           <input
             type="password"
@@ -107,38 +102,43 @@
             autocomplete="off"
             spellcheck="false"
           >
-          <button class="toggle-vis" id="toggle-key" title="显示/隐藏">👁</button>
+          <button class="toggle-vis" id="toggle-key" type="button" title="显示/隐藏">👁</button>
         </div>
-
         <div class="inline-note" style="margin-top:12px;">
           <span style="font-size:12px; color:var(--text-dim);">还没有账号？</span>
-          <a class="link" id="link-register">立即注册 PPIO →</a>
+          <a class="link" id="link-register" href="#">立即注册 PPIO →</a>
         </div>
       </div>
 
       <!-- Model Selection Card -->
       <div class="card">
         <div class="card-title">🤖 模型配置</div>
-        <div class="card-desc">
-          主模型用于复杂任务，快速模型用于简单补全。
-        </div>
+        <div class="card-desc">主模型用于复杂任务，快速模型用于简单补全。</div>
 
         <div class="model-grid">
           <div class="model-field">
-            <label>主模型 (ANTHROPIC_MODEL)</label>
-            <select id="main-model">
-              <option value="pa/claude-sonnet-4-6" selected>claude-sonnet-4-6 ⭐ 推荐</option>
-              <option value="pa/claude-opus-4-6">claude-opus-4-6（最强，慢）</option>
-              <option value="pa/claude-haiku-4-5-20251001">claude-haiku-4-5（快速，轻量）</option>
-            </select>
+            <label for="main-model">主模型<br><small>ANTHROPIC_MODEL</small></label>
+            <div class="select-or-input">
+              <select id="main-model">
+                <option value="pa/claude-sonnet-4-6" selected>pa/claude-sonnet-4-6 ⭐ 推荐</option>
+                <option value="pa/claude-opus-4-6">pa/claude-opus-4-6（最强，慢）</option>
+                <option value="pa/claude-haiku-4-5-20251001">pa/claude-haiku-4-5（快速，轻量）</option>
+                <option value="__custom__">✏️ 手动输入...</option>
+              </select>
+              <input type="text" id="main-model-custom" class="custom-model-input" placeholder="输入模型 ID，如 pa/claude-xxx" style="display:none;">
+            </div>
           </div>
           <div class="model-field">
-            <label>快速模型 (ANTHROPIC_SMALL_FAST_MODEL)</label>
-            <select id="fast-model">
-              <option value="pa/claude-haiku-4-5-20251001" selected>claude-haiku-4-5 ⭐ 推荐</option>
-              <option value="pa/claude-sonnet-4-6">claude-sonnet-4-6</option>
-              <option value="pa/claude-opus-4-6">claude-opus-4-6</option>
-            </select>
+            <label for="fast-model">快速模型<br><small>ANTHROPIC_SMALL_FAST_MODEL</small></label>
+            <div class="select-or-input">
+              <select id="fast-model">
+                <option value="pa/claude-haiku-4-5-20251001" selected>pa/claude-haiku-4-5 ⭐ 推荐</option>
+                <option value="pa/claude-sonnet-4-6">pa/claude-sonnet-4-6</option>
+                <option value="pa/claude-opus-4-6">pa/claude-opus-4-6</option>
+                <option value="__custom__">✏️ 手动输入...</option>
+              </select>
+              <input type="text" id="fast-model-custom" class="custom-model-input" placeholder="输入模型 ID，如 pa/claude-xxx" style="display:none;">
+            </div>
           </div>
         </div>
 
@@ -147,7 +147,7 @@
           <div class="config-preview-label">将写入以下环境变量</div>
           <div class="config-preview-body">
             <div><span class="env-key">ANTHROPIC_BASE_URL</span> = <span class="env-val-blue">https://api.ppio.com/anthropic</span></div>
-            <div><span class="env-key">ANTHROPIC_AUTH_TOKEN</span> = <span id="preview-key" class="env-val-warn">（未填写）</span></div>
+            <div><span class="env-key">ANTHROPIC_AUTH_TOKEN</span> = <span id="preview-key" class="env-val-dim">（未填写）</span></div>
             <div><span class="env-key">ANTHROPIC_MODEL</span> = <span id="preview-main" class="env-val-green">pa/claude-sonnet-4-6</span></div>
             <div><span class="env-key">ANTHROPIC_SMALL_FAST_MODEL</span> = <span id="preview-fast" class="env-val-green">pa/claude-haiku-4-5-20251001</span></div>
           </div>
@@ -156,12 +156,8 @@
 
       <!-- Action Buttons -->
       <div class="action-row">
-        <button class="btn btn-primary" id="btn-apply">
-          ⚡ 一键写入配置
-        </button>
-        <button class="btn btn-danger" id="btn-restore" title="清除所有 PPIO 相关环境变量">
-          🗑 清除配置
-        </button>
+        <button class="btn btn-primary" id="btn-apply">⚡ 一键写入配置</button>
+        <button class="btn btn-danger"  id="btn-restore" title="清除所有 PPIO 相关环境变量">🗑 清除配置</button>
       </div>
 
     </div><!-- /#config-section -->
@@ -170,7 +166,7 @@
     <div class="log-section">
       <div class="log-header">
         <span class="log-title">📋 日志</span>
-        <button class="btn-clear-log" id="btn-clear-log">清空</button>
+        <button class="btn-clear-log" id="btn-clear-log" type="button">清空</button>
       </div>
       <div class="log-body" id="log-body"></div>
     </div>
@@ -197,14 +193,12 @@
       </div>
       <div class="next-step-item">
         <div class="step-num-badge">3</div>
-        <div class="step-content">
-          启动 Claude Code：<code>claude</code>
-        </div>
+        <div class="step-content">启动 Claude Code：<code>claude</code></div>
       </div>
     </div>
 
     <div class="result-actions">
-      <button class="btn btn-primary" id="btn-result-back">← 返回修改</button>
+      <button class="btn btn-primary"   id="btn-result-back">← 返回修改</button>
       <button class="btn btn-secondary" id="btn-done">完成</button>
     </div>
   </div>

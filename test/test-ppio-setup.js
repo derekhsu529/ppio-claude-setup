@@ -164,7 +164,7 @@ assert(cssContent.includes('.mac-max'), '最大化按钮 (#28c840) 样式存在'
 assert(cssContent.includes('.platform-mac'), 'macOS 平台 class 样式存在');
 assert(cssContent.includes('.model-field'), 'model-field 布局样式存在');
 assert(cssContent.includes('flex-direction: column'), 'model-grid 改为垂直布局');
-assert(cssContent.includes('flex: 0 0 200px'), 'label 固定宽度 200px');
+assert(cssContent.includes('flex: 0 0 180px'), 'label 固定宽度 180px');
 
 // ─── SUITE 6: 图标文件检查 ──────────────────────────────────────
 console.log('\n📋 Suite 6: 图标文件');
@@ -181,6 +181,45 @@ assert(iconIcns.size > 50000, `icon.icns 大小正常 (${iconIcns.size} bytes)`)
 const { execSync } = require('child_process');
 const identify = execSync('python3 -c "from PIL import Image; img = Image.open(\'/root/.openclaw/workspace/projects/ppio-claude-setup/assets/icon.png\'); print(img.size)"').toString().trim();
 assertEq(identify, '(1024, 1024)', 'icon.png 尺寸 1024x1024');
+
+// ─── SUITE 5.5: 新增 Bug 修复检查 ───────────────────────────────
+console.log('\n📋 Suite 5.5: Bug 修复验证');
+
+// Bug1: 标题栏两边不能同时显示（HTML 里都是 display:none）
+assert(htmlContent.includes('id="controls-mac" style="display:none;"'), '标题栏 mac 控件 HTML 默认 display:none');
+assert(htmlContent.includes('id="controls-win" style="display:none;"'), '标题栏 win 控件 HTML 默认 display:none');
+
+// Bug3: 眼镜按钮有 type="button" 防止 form submit
+assert(htmlContent.includes('id="toggle-key" type="button"'), '眼镜按钮有 type=button');
+
+// Bug5: 支持手动输入模型（__custom__ option）
+assert(htmlContent.includes('value="__custom__"'), '主/快速模型支持手动输入选项');
+assert(htmlContent.includes('id="main-model-custom"'), '主模型自定义输入框存在');
+assert(htmlContent.includes('id="fast-model-custom"'), '快速模型自定义输入框存在');
+
+// Bug4: 模型 option 值显示 pa/ 前缀（option text 也包含 pa/）
+assert(htmlContent.includes('>pa/claude-sonnet-4-6'), '主模型选项文本显示 pa/ 前缀');
+assert(htmlContent.includes('>pa/claude-opus-4-6'), 'opus 选项文本显示 pa/ 前缀');
+assert(htmlContent.includes('>pa/claude-haiku-4-5'), 'haiku 选项文本显示 pa/ 前缀');
+
+// Bug4: 预览区域变量名正确
+assert(htmlContent.includes('id="preview-main"'), '主模型预览 span 存在');
+assert(htmlContent.includes('id="preview-fast"'), '快速模型预览 span 存在');
+
+// Bug6: config-section 初始就有 config-disabled class（HTML里）
+assert(htmlContent.includes('class="config-section-wrap config-disabled"'), 'config-section 初始带 config-disabled');
+
+// renderer.js: getModelValue 函数处理 __custom__
+assert(rendererContent.includes('__custom__'), 'renderer.js 处理 __custom__ 选项');
+assert(rendererContent.includes('getModelValue'), 'renderer.js 有 getModelValue 函数');
+
+// renderer.js: updatePreview 响应 select change
+assert(rendererContent.includes("$('main-model').addEventListener('change'"), '主模型 change 事件绑定');
+assert(rendererContent.includes("$('fast-model').addEventListener('change'"), '快速模型 change 事件绑定');
+
+// CSS: select-or-input 布局
+assert(cssContent.includes('.select-or-input'), 'CSS 有 select-or-input 容器样式');
+assert(cssContent.includes('.custom-model-input'), 'CSS 有 custom-model-input 样式');
 
 // ─── SUITE 6.5: 国内镜像配置检查 ────────────────────────────────
 console.log('\n📋 Suite 6.5: 国内镜像配置检查');
