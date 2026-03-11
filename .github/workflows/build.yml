@@ -8,7 +8,7 @@ on:
 jobs:
   build-mac:
     name: Build macOS
-    runs-on: macos-13
+    runs-on: macos-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,11 +36,19 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx electron-builder --mac --publish=never
 
+      - name: Package macOS app as tar.gz
+        run: |
+          cd dist
+          APP=$(find . -name "*.app" -maxdepth 2 | head -1)
+          echo "Found app: $APP"
+          tar -czf "PPIO-Claude-Setup-mac-x64.tar.gz" "$APP"
+          ls -lh *.tar.gz
+
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: mac-zip
-          path: dist/*.zip
+          name: mac-targz
+          path: dist/*.tar.gz
 
   build-windows:
     name: Build Windows
@@ -117,7 +125,7 @@ jobs:
             3. Windows：运行 exe 安装向导
             4. 启动应用，按步骤安装环境并配置 API Key
           files: |
-            artifacts/**/*.zip
+            artifacts/**/*.tar.gz
             artifacts/**/*.exe
           draft: false
           prerelease: false

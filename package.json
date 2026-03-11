@@ -41,7 +41,7 @@
       "category": "public.app-category.developer-tools",
       "target": [
         {
-          "target": "zip",
+          "target": "dir",
           "arch": [
             "x64"
           ]
