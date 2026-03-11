@@ -106,9 +106,9 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "PPIO Claude Setup ${{ github.ref_name }}"
+          name: "PPIO Claude Code Setup ${{ github.ref_name }}"
           body: |
-            ## 📦 PPIO Claude Setup ${{ github.ref_name }}
+            ## 📦 PPIO Claude Code Setup ${{ github.ref_name }}
 
             一键配置 Claude Code + PPIO API 环境变量的图形化工具
 
