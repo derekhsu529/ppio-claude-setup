@@ -415,6 +415,36 @@ function removeEnvBlock(content) {
   return before + '\n' + after;
 }
 
+// 注释掉 marker 块外已有的同名 export 行，避免冲突
+const MANAGED_VARS = [
+  'ANTHROPIC_BASE_URL',
+  'ANTHROPIC_AUTH_TOKEN',
+  'ANTHROPIC_MODEL',
+  'ANTHROPIC_SMALL_FAST_MODEL'
+];
+
+function commentOutExistingVars(content) {
+  const lines = content.split('\n');
+  let inMarkerBlock = false;
+  const result = lines.map(line => {
+    if (line.includes(PPIO_MARKER_START)) inMarkerBlock = true;
+    if (line.includes(PPIO_MARKER_END)) inMarkerBlock = false;
+    // 不动 marker 块内的行
+    if (inMarkerBlock) return line;
+
+    // 检查是否是 export ANTHROPIC_XXX= 的行（非注释）
+    const trimmed = line.trim();
+    if (trimmed.startsWith('#')) return line; // 已经是注释
+    for (const v of MANAGED_VARS) {
+      if (trimmed.startsWith(`export ${v}=`) || trimmed.startsWith(`${v}=`)) {
+        return `# [PPIO backup] ${line}`;
+      }
+    }
+    return line;
+  });
+  return result.join('\n');
+}
+
 function applyConfigMac(config) {
   const files = [
     path.join(os.homedir(), '.zshrc'),
@@ -431,7 +461,8 @@ function applyConfigMac(config) {
       }
 
       let content = fs.readFileSync(filePath, 'utf8');
-      content = removeEnvBlock(content);
+      content = removeEnvBlock(content);            // 移除旧的 PPIO 配置块
+      content = commentOutExistingVars(content);    // 注释掉散落在外的同名变量
       content = content.trimEnd() + buildEnvBlock(config);
       fs.writeFileSync(filePath, content, 'utf8');
       updated.push(filePath);

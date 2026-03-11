@@ -101,7 +101,39 @@ assert(cleaned.includes('# after content'), '后续内容保留');
 const noMarker = '# plain config\nexport FOO=bar\n';
 assertEq(removeEnvBlock(noMarker), noMarker, '无 marker 时内容不变');
 
-// Case 3: 写入后再移除，内容一致
+// Case 3: commentOutExistingVars 处理散落的 export 行
+const PPIO_MARKER_START_T = '# >>> PPIO Claude Code Setup START >>>';
+const PPIO_MARKER_END_T = '# <<< PPIO Claude Code Setup END <<<';
+const MANAGED_VARS = ['ANTHROPIC_BASE_URL','ANTHROPIC_AUTH_TOKEN','ANTHROPIC_MODEL','ANTHROPIC_SMALL_FAST_MODEL'];
+
+function commentOutExistingVars(content) {
+  const lines = content.split('\n');
+  let inBlock = false;
+  return lines.map(line => {
+    if (line.includes(PPIO_MARKER_START_T)) inBlock = true;
+    if (line.includes(PPIO_MARKER_END_T)) inBlock = false;
+    if (inBlock) return line;
+    const t = line.trim();
+    if (t.startsWith('#')) return line;
+    for (const v of MANAGED_VARS) {
+      if (t.startsWith(`export ${v}=`) || t.startsWith(`${v}=`)) return `# [PPIO backup] ${line}`;
+    }
+    return line;
+  }).join('\n');
+}
+
+const existingContent = 'export PATH="/usr/bin"\nexport ANTHROPIC_MODEL="old-model"\nexport FOO=bar';
+const commented = commentOutExistingVars(existingContent);
+assert(commented.includes('# [PPIO backup] export ANTHROPIC_MODEL="old-model"'), '散落的 ANTHROPIC_MODEL 被注释');
+assert(commented.includes('export PATH="/usr/bin"'), '无关 export 不受影响');
+assert(commented.includes('export FOO=bar'), '无关变量不受影响');
+
+// Case 4: marker 块内的行不被注释
+const blockContent = PPIO_MARKER_START_T + '\nexport ANTHROPIC_MODEL="new"\n' + PPIO_MARKER_END_T;
+const notCommented = commentOutExistingVars(blockContent);
+assert(!notCommented.includes('# [PPIO backup]'), 'marker 块内不被注释');
+
+// Case 5: 写入后再移除，内容一致
 const base = '# base content\nexport HELLO="world"';
 const withBlock = base.trimEnd() + buildEnvBlock(testConfig);
 const afterRemove = removeEnvBlock(withBlock);
