@@ -10,7 +10,13 @@
     "build:win": "electron-builder --win",
     "build:all": "electron-builder --mac --win"
   },
-  "keywords": ["claude", "ppio", "claude-code", "setup", "electron"],
+  "keywords": [
+    "claude",
+    "ppio",
+    "claude-code",
+    "setup",
+    "electron"
+  ],
   "author": "PPIO",
   "license": "MIT",
   "devDependencies": {
@@ -35,17 +41,21 @@
       "category": "public.app-category.developer-tools",
       "target": [
         {
-          "target": "dmg",
-          "arch": ["x64", "arm64"]
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
         }
       ],
-      "icon": "assets/icon.icns"
+      "icon": "assets/icon.png"
     },
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "assets/icon.ico"
@@ -60,10 +70,18 @@
     "dmg": {
       "title": "PPIO Claude Setup",
       "contents": [
-        { "x": 410, "y": 150, "type": "link", "path": "/Applications" },
-        { "x": 130, "y": 150, "type": "file" }
+        {
+          "x": 410,
+          "y": 150,
+          "type": "link",
+          "path": "/Applications"
+        },
+        {
+          "x": 130,
+          "y": 150,
+          "type": "file"
+        }
       ]
-    },
-    "publish": null
+    }
   }
 }

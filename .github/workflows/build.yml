@@ -8,7 +8,7 @@ on:
 jobs:
   build-mac:
     name: Build macOS
-    runs-on: macos-latest
+    runs-on: macos-13
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,8 +39,8 @@ jobs:
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: mac-dmg
-          path: dist/*.dmg
+          name: mac-zip
+          path: dist/*.zip
 
   build-windows:
     name: Build Windows
@@ -92,6 +92,9 @@ jobs:
         with:
           path: artifacts
 
+      - name: List artifacts
+        run: find artifacts -type f | sort
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -105,16 +108,16 @@ jobs:
 
             | 平台 | 文件 | 说明 |
             |------|------|------|
-            | 🍎 macOS | `PPIO-Claude-Setup-*.dmg` | 支持 Intel & Apple Silicon |
+            | 🍎 macOS | `PPIO-Claude-Setup-*-mac.zip` | Intel x64，解压后直接运行 |
             | 🪟 Windows | `PPIO-Claude-Setup-Setup-*.exe` | Windows 10/11 64位 |
 
             ### 使用方法
             1. 下载对应平台的安装包
-            2. macOS：打开 DMG，拖拽到 Applications
+            2. macOS：解压 zip，双击 .app 运行
             3. Windows：运行 exe 安装向导
             4. 启动应用，按步骤安装环境并配置 API Key
           files: |
-            artifacts/**/*.dmg
+            artifacts/**/*.zip
             artifacts/**/*.exe
           draft: false
           prerelease: false
