@@ -48,20 +48,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (isMac) {
     document.body.classList.add('platform-mac');
-    $('controls-mac').style.display = 'flex';
+    // macOS 用系统原生红绿灯（titleBarStyle: hiddenInset），隐藏两组自定义按钮
+    $('controls-mac').style.display = 'none';
     $('controls-win').style.display = 'none';
   } else {
+    // Windows/Linux: 用自定义按钮
     $('controls-mac').style.display = 'none';
     $('controls-win').style.display = 'flex';
+    $('btn-close-win').addEventListener('click', () => window.electronAPI.close());
+    $('btn-min-win').addEventListener('click',   () => window.electronAPI.minimize());
+    $('btn-max-win').addEventListener('click',   () => window.electronAPI.maximize());
   }
-
-  // titlebar button bindings
-  $('btn-close').addEventListener('click', () => window.electronAPI.close());
-  $('btn-min').addEventListener('click',   () => window.electronAPI.minimize());
-  $('btn-max').addEventListener('click',   () => window.electronAPI.maximize());
-  $('btn-close-win').addEventListener('click', () => window.electronAPI.close());
-  $('btn-min-win').addEventListener('click',   () => window.electronAPI.minimize());
-  $('btn-max-win').addEventListener('click',   () => window.electronAPI.maximize());
 
   // ─── Screens ─────────────────────────────────────────────────
   function showScreen(name) {
@@ -121,19 +118,19 @@ document.addEventListener('DOMContentLoaded', () => {
       } else if (r.installed) {
         dot.className = 'status-dot status-warn';
         txt.textContent = r.version + '（版本过低）';
-        btn.textContent = '前往下载 Node.js';
-        btn.className = 'btn btn-warning';
+        btn.textContent = '安装 Node.js';
+        btn.className = 'btn btn-primary';
         btn.disabled = false;
-        btn.onclick = openNodeDownload;
-        log(`Node.js ${r.version} 版本过低，需要 >= 18`, 'warning');
+        btn.onclick = () => installNode();
+        log(`Node.js ${r.version} 版本过低（需要 >= 18），点击安装最新版`, 'warning');
       } else {
         dot.className = 'status-dot status-error';
         txt.textContent = '未安装';
-        btn.textContent = '前往下载 Node.js';
-        btn.className = 'btn btn-warning';
+        btn.textContent = '安装 Node.js';
+        btn.className = 'btn btn-primary';
         btn.disabled = false;
-        btn.onclick = openNodeDownload;
-        log('未检测到 Node.js，请先安装', 'warning');
+        btn.onclick = () => installNode();
+        log('未检测到 Node.js，点击「安装 Node.js」进行安装', 'info');
       }
     } catch (e) {
       log('检测失败: ' + e.message, 'error');
@@ -143,9 +140,52 @@ document.addEventListener('DOMContentLoaded', () => {
     refreshConfigLock();
   });
 
-  function openNodeDownload() {
-    window.electronAPI.openExternal('https://npmmirror.com/mirrors/node/');
-    log('已打开 Node.js 下载页（淘宝镜像），安装后重新打开本工具', 'warning');
+  async function installNode() {
+    const btn = $('btn-check-node');
+    btn.disabled = true;
+    btn.textContent = '⏳ 安装中...';
+    btn.className = 'btn btn-secondary';
+    log('开始安装 Node.js...', 'info');
+
+    try {
+      const r = await window.electronAPI.installNode();
+      if (r.success) {
+        // 重新检测
+        const check = await window.electronAPI.checkNode();
+        const dot = $('node-status-badge').querySelector('.status-dot');
+        const txt = $('node-status-text');
+        if (check.installed && check.sufficient) {
+          dot.className = 'status-dot status-ok';
+          txt.textContent = check.version;
+          btn.textContent = '已满足 ✓';
+          btn.className = 'btn btn-success-static';
+          state.nodeOk = true;
+          log(`Node.js ${check.version} 安装成功 ✓`, 'success');
+        } else {
+          log('安装完成但版本检测异常，请重启本工具后重试', 'warning');
+          btn.textContent = '🔍 重新检测';
+          btn.className = 'btn btn-secondary';
+          btn.disabled = false;
+        }
+      } else {
+        log('自动安装失败: ' + (r.error || '未知'), 'error');
+        log('请手动安装：访问 https://npmmirror.com/mirrors/node/', 'warning');
+        btn.textContent = '前往下载';
+        btn.className = 'btn btn-warning';
+        btn.disabled = false;
+        btn.onclick = () => {
+          window.electronAPI.openExternal('https://npmmirror.com/mirrors/node/');
+          log('已打开下载页', 'info');
+        };
+      }
+    } catch (e) {
+      log('安装出错: ' + e.message, 'error');
+      btn.textContent = '重试';
+      btn.className = 'btn btn-danger';
+      btn.disabled = false;
+      btn.onclick = () => installNode();
+    }
+    refreshConfigLock();
   }
 
   // ─── Part 1: Claude Code ─────────────────────────────────────

@@ -251,8 +251,11 @@ assert(rendererContent.includes("typeof window.electronAPI === 'undefined'"), 'r
 console.log('\n📋 Suite 7: main.js Windows 逻辑检查');
 
 const mainContent = fs.readFileSync('/root/.openclaw/workspace/projects/ppio-claude-setup/main.js', 'utf8');
-assert(mainContent.includes("'win32' ? 'node.exe --version'"), 'Windows node 检测命令正确');
-assert(mainContent.includes("'win32' ? 'claude.cmd --version'"), 'Windows claude 检测命令正确');
+assert(mainContent.includes("node --version"), 'node 检测命令存在');
+assert(mainContent.includes("claude --version"), 'claude 检测命令存在');
+assert(mainContent.includes("getEnvWithPath"), 'PATH 补全函数存在');
+assert(mainContent.includes("'.nvm'") && mainContent.includes("'versions'"), 'nvm 路径扫描存在');
+assert(mainContent.includes('/opt/homebrew/bin'), 'Homebrew Apple Silicon 路径存在');
 assert(mainContent.includes("'win32' ? 'npm.cmd'"), 'Windows npm 命令正确');
 assert(mainContent.includes('setx'), 'Windows 使用 setx 写环境变量');
 assert(mainContent.includes('REG DELETE'), 'Windows 使用 REG DELETE 清环境变量');

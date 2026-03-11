@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Environment detection
   checkNode: () => ipcRenderer.invoke('check-node'),
   checkClaude: () => ipcRenderer.invoke('check-claude'),
+  installNode: () => ipcRenderer.invoke('install-node'),
   installClaude: () => ipcRenderer.invoke('install-claude'),
 
   // Listen for streaming install progress

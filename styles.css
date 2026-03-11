@@ -139,10 +139,9 @@ html, body {
 .mac-min   { background: #febc2e; }
 .mac-max   { background: #28c840; }
 
-/* macOS: traffic light left side */
-.platform-mac #titlebar .controls-mac {
-  position: absolute;
-  left: 14px;
+/* macOS: 系统原生红绿灯模式下，titlebar 需要左侧留空 */
+.platform-mac #titlebar {
+  padding-left: 80px;  /* 给系统红绿灯留位置 */
 }
 
 /* ─── App Layout ─────────────────────────────────────────────── */

@@ -7,15 +7,20 @@ const { exec, spawn } = require('child_process');
 let mainWindow;
 
 function createWindow() {
+  const isMac = process.platform === 'darwin';
+
   mainWindow = new BrowserWindow({
     width: 700,
     height: 820,
     minWidth: 660,
     minHeight: 700,
     resizable: true,
-    frame: false,
-    titleBarStyle: 'hidden',
+    // macOS: 用系统原生红绿灯，隐藏标题但保留按钮
+    // Windows/Linux: 完全无框，用自定义按钮
+    frame: isMac ? true : false,
+    titleBarStyle: isMac ? 'hiddenInset' : 'hidden',
     titleBarOverlay: false,
+    trafficLightPosition: isMac ? { x: 14, y: 14 } : undefined,
     backgroundColor: '#0a0e1a',
     webPreferences: {
       nodeIntegration: false,
@@ -72,49 +77,99 @@ ipcMain.handle('get-version', () => app.getVersion());
 
 // ─── Environment Detection ──────────────────────────────────────
 
-// Check Node.js version
+// Check Node.js version — 尝试多种方式找到 node
 ipcMain.handle('check-node', async () => {
-  return new Promise((resolve) => {
-    // Try multiple paths for cross-platform compatibility
-    const cmd = process.platform === 'win32' ? 'node.exe --version' : 'node --version';
-    exec(cmd, { timeout: 10000, env: getEnvWithPath() }, (error, stdout, stderr) => {
-      if (error) {
-        resolve({ installed: false, version: null, sufficient: false });
-        return;
-      }
-      const raw = (stdout || '').trim();
-      // Parse version like v18.17.0
-      const match = raw.match(/v?(\d+)\.(\d+)\.(\d+)/);
-      if (!match) {
-        resolve({ installed: false, version: null, sufficient: false });
-        return;
-      }
-      const major = parseInt(match[1], 10);
-      const version = `v${match[1]}.${match[2]}.${match[3]}`;
-      resolve({
-        installed: true,
-        version,
-        sufficient: major >= 18
+  const envWithPath = getEnvWithPath();
+
+  // 尝试多个候选命令
+  const candidates = process.platform === 'win32'
+    ? ['node.exe --version', 'node --version']
+    : ['node --version'];
+
+  for (const cmd of candidates) {
+    try {
+      const result = await new Promise((resolve) => {
+        exec(cmd, { timeout: 10000, env: envWithPath, shell: process.platform === 'win32' ? undefined : '/bin/bash' }, (error, stdout) => {
+          if (error) { resolve(null); return; }
+          const raw = (stdout || '').trim();
+          const match = raw.match(/v?(\d+)\.(\d+)\.(\d+)/);
+          if (!match) { resolve(null); return; }
+          const major = parseInt(match[1], 10);
+          resolve({
+            installed: true,
+            version: `v${match[1]}.${match[2]}.${match[3]}`,
+            sufficient: major >= 18
+          });
+        });
       });
-    });
-  });
+      if (result) return result;
+    } catch (e) { /* try next */ }
+  }
+
+  return { installed: false, version: null, sufficient: false };
 });
 
-// Check Claude Code version
+// Check Claude Code version — 尝试多种方式找到 claude
 ipcMain.handle('check-claude', async () => {
+  const envWithPath = getEnvWithPath();
+
+  const candidates = process.platform === 'win32'
+    ? ['claude.cmd --version', 'claude --version']
+    : ['claude --version'];
+
+  for (const cmd of candidates) {
+    try {
+      const result = await new Promise((resolve) => {
+        exec(cmd, { timeout: 10000, env: envWithPath, shell: process.platform === 'win32' ? undefined : '/bin/bash' }, (error, stdout, stderr) => {
+          if (error) { resolve(null); return; }
+          const raw = (stdout || stderr || '').trim();
+          const match = raw.match(/(\d+\.\d+[\.\d]*)/);
+          const version = match ? match[1] : raw;
+          if (version) {
+            resolve({ installed: true, version });
+          } else {
+            resolve(null);
+          }
+        });
+      });
+      if (result) return result;
+    } catch (e) { /* try next */ }
+  }
+
+  return { installed: false, version: null };
+});
+
+// Install Node.js — macOS 用 brew，其他平台给下载链接
+ipcMain.handle('install-node', async (event) => {
   return new Promise((resolve) => {
-    const cmd = process.platform === 'win32' ? 'claude.cmd --version' : 'claude --version';
-    exec(cmd, { timeout: 10000, env: getEnvWithPath() }, (error, stdout, stderr) => {
-      if (error) {
-        resolve({ installed: false, version: null });
-        return;
-      }
-      const raw = (stdout || stderr || '').trim();
-      // claude --version outputs something like "1.0.5"
-      const match = raw.match(/(\d+\.\d+[\.\d]*)/);
-      const version = match ? match[1] : raw;
-      resolve({ installed: true, version: version || 'unknown' });
-    });
+    if (process.platform === 'darwin') {
+      // macOS: 先试 brew install node
+      const envWithPath = getEnvWithPath();
+      exec('which brew', { env: envWithPath, timeout: 5000 }, (err) => {
+        if (err) {
+          // 没有 Homebrew
+          resolve({ success: false, error: '未检测到 Homebrew，请先安装 Homebrew (https://brew.sh) 或手动安装 Node.js' });
+          return;
+        }
+        const child = spawn('brew', ['install', 'node'], { env: envWithPath, timeout: 300000 });
+        child.stdout.on('data', d => {
+          event.sender.send('install-progress', { type: 'stdout', text: d.toString() });
+        });
+        child.stderr.on('data', d => {
+          event.sender.send('install-progress', { type: 'stderr', text: d.toString() });
+        });
+        child.on('close', code => {
+          resolve(code === 0 ? { success: true } : { success: false, error: `brew 退出码 ${code}` });
+        });
+        child.on('error', e => resolve({ success: false, error: e.message }));
+      });
+    } else if (process.platform === 'win32') {
+      // Windows: 引导用户下载
+      resolve({ success: false, error: 'Windows 请手动下载安装 Node.js' });
+    } else {
+      // Linux
+      resolve({ success: false, error: '请使用系统包管理器安装 Node.js' });
+    }
   });
 });
 
@@ -153,19 +208,87 @@ ipcMain.handle('install-claude', async (event) => {
   });
 });
 
-// Helper: get env with common PATH additions
+// Helper: get env with comprehensive PATH additions
+// Electron 打包后 app 的 PATH 非常精简，需要手动补全常见路径
 function getEnvWithPath() {
   const env = { ...process.env };
-  const extraPaths = [
-    '/usr/local/bin',
-    '/usr/bin',
-    '/bin',
-    `${os.homedir()}/.nvm/versions/node/current/bin`,
-    `${os.homedir()}/.local/bin`,
-    'C:\\Program Files\\nodejs',
-    'C:\\Program Files (x86)\\nodejs'
-  ];
+  const home = os.homedir();
   const sep = process.platform === 'win32' ? ';' : ':';
+
+  const extraPaths = [];
+
+  if (process.platform === 'win32') {
+    extraPaths.push(
+      'C:\\Program Files\\nodejs',
+      'C:\\Program Files (x86)\\nodejs',
+      path.join(home, 'AppData', 'Roaming', 'npm'),
+      path.join(home, '.nvm', 'current', 'bin'),
+      path.join(home, 'scoop', 'apps', 'nodejs', 'current', 'bin')
+    );
+  } else {
+    // macOS / Linux — 覆盖所有常见 Node 安装方式
+    extraPaths.push(
+      '/usr/local/bin',
+      '/usr/bin',
+      '/bin',
+      '/opt/homebrew/bin',             // Homebrew Apple Silicon
+      '/opt/homebrew/sbin',
+      '/usr/local/opt/node/bin',       // Homebrew Intel
+      path.join(home, '.local', 'bin'),
+      path.join(home, '.npm-global', 'bin'),
+      path.join(home, '.yarn', 'bin')
+    );
+
+    // nvm: 扫描实际存在的版本目录
+    const nvmDir = path.join(home, '.nvm', 'versions', 'node');
+    try {
+      const versions = fs.readdirSync(nvmDir)
+        .filter(d => d.startsWith('v'))
+        .sort()
+        .reverse(); // 最新版本优先
+      for (const v of versions) {
+        extraPaths.push(path.join(nvmDir, v, 'bin'));
+      }
+    } catch (e) {
+      // nvm 不存在，跳过
+    }
+
+    // fnm
+    const fnmDir = path.join(home, '.fnm', 'node-versions');
+    try {
+      const versions = fs.readdirSync(fnmDir)
+        .filter(d => d.startsWith('v'))
+        .sort()
+        .reverse();
+      for (const v of versions) {
+        extraPaths.push(path.join(fnmDir, v, 'installation', 'bin'));
+      }
+    } catch (e) {}
+
+    // volta
+    extraPaths.push(path.join(home, '.volta', 'bin'));
+
+    // n (tj/n)
+    extraPaths.push('/usr/local/n/versions/node');
+  }
+
+  // 也尝试从 shell 获取真实 PATH（macOS Electron 拿不到 login shell 的 PATH）
+  if (process.platform !== 'win32') {
+    try {
+      const { execSync } = require('child_process');
+      const shellPath = execSync('/bin/bash -ilc "echo $PATH"', {
+        timeout: 3000,
+        encoding: 'utf8',
+        env: { ...process.env, HOME: home }
+      }).trim();
+      if (shellPath) {
+        extraPaths.push(...shellPath.split(':'));
+      }
+    } catch (e) {
+      // 如果 shell 获取失败，继续用手动路径
+    }
+  }
+
   env.PATH = (env.PATH || '') + sep + extraPaths.join(sep);
   return env;
 }
