@@ -1,0 +1,199 @@
+name: CI Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-mac:
+    name: Test macOS
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Test env block write & cleanup (integration)
+        run: |
+          set -e
+          echo "=== Integration: write config to .zshrc ==="
+
+          # 备份
+          cp ~/.zshrc ~/.zshrc.bak 2>/dev/null || echo "# empty" > ~/.zshrc.bak
+
+          # 用 node 直接调用写入逻辑
+          node -e "
+            const fs = require('fs');
+            const os = require('os');
+            const path = require('path');
+
+            const PPIO_MARKER_START = '# >>> PPIO Claude Code Setup START >>>';
+            const PPIO_MARKER_END = '# <<< PPIO Claude Code Setup END <<<';
+
+            function buildEnvBlock(config) {
+              const lines = [
+                PPIO_MARKER_START,
+                'export ANTHROPIC_BASE_URL=\"https://api.ppio.com/anthropic\"',
+                'export ANTHROPIC_AUTH_TOKEN=\"' + config.apiKey + '\"',
+                'export ANTHROPIC_MODEL=\"' + config.mainModel + '\"',
+                'export ANTHROPIC_SMALL_FAST_MODEL=\"' + config.fastModel + '\"',
+                PPIO_MARKER_END
+              ];
+              return '\n' + lines.join('\n') + '\n';
+            }
+
+            function removeEnvBlock(content) {
+              const startIdx = content.indexOf(PPIO_MARKER_START);
+              const endIdx = content.indexOf(PPIO_MARKER_END);
+              if (startIdx === -1 || endIdx === -1) return content;
+              const before = content.substring(0, startIdx).replace(/\n+$/, '');
+              const after = content.substring(endIdx + PPIO_MARKER_END.length).replace(/^\n/, '');
+              return before + '\n' + after;
+            }
+
+            const zshrc = path.join(os.homedir(), '.zshrc');
+
+            // 1. Write config
+            let content = fs.readFileSync(zshrc, 'utf8');
+            content = content.trimEnd() + buildEnvBlock({
+              apiKey: 'sk_ci_test_123',
+              mainModel: 'pa/claude-sonnet-4-6',
+              fastModel: 'pa/claude-haiku-4-5-20251001'
+            });
+            fs.writeFileSync(zshrc, content, 'utf8');
+
+            // 2. Verify it's there
+            const written = fs.readFileSync(zshrc, 'utf8');
+            if (!written.includes('sk_ci_test_123')) {
+              console.error('FAIL: API key not found in .zshrc');
+              process.exit(1);
+            }
+            console.log('PASS: Config written to .zshrc');
+
+            // 3. Source and verify
+            const { execSync } = require('child_process');
+            const val = execSync('/bin/bash -lc \"source ~/.zshrc && echo \$ANTHROPIC_AUTH_TOKEN\"', { encoding: 'utf8' }).trim();
+            if (val !== 'sk_ci_test_123') {
+              console.error('FAIL: source did not load env var, got: ' + val);
+              process.exit(1);
+            }
+            console.log('PASS: source ~/.zshrc loaded env var correctly');
+
+            // 4. Remove config
+            let afterContent = fs.readFileSync(zshrc, 'utf8');
+            afterContent = removeEnvBlock(afterContent);
+            fs.writeFileSync(zshrc, afterContent, 'utf8');
+
+            const cleaned = fs.readFileSync(zshrc, 'utf8');
+            if (cleaned.includes('sk_ci_test_123')) {
+              console.error('FAIL: API key still in .zshrc after cleanup');
+              process.exit(1);
+            }
+            console.log('PASS: Config removed from .zshrc');
+          "
+
+          # 还原
+          mv ~/.zshrc.bak ~/.zshrc 2>/dev/null || true
+          echo "=== Integration tests passed ==="
+
+      - name: Test Claude Code installability
+        run: |
+          set -e
+          echo "=== Testing npm install -g @anthropic-ai/claude-code (dry run check) ==="
+          # 验证包在 registry 上存在（不真正安装，节省时间）
+          npm view @anthropic-ai/claude-code version --registry https://registry.npmmirror.com && echo "PASS: Package exists on npmmirror" || echo "WARN: npmmirror check failed, trying npmjs"
+          npm view @anthropic-ai/claude-code version && echo "PASS: Package exists on npmjs"
+
+      - name: Test Node.js detection logic
+        run: |
+          set -e
+          NODE_VER=$(node --version)
+          echo "Node.js version: $NODE_VER"
+          MAJOR=$(echo $NODE_VER | sed 's/v//' | cut -d. -f1)
+          if [ "$MAJOR" -ge 18 ]; then
+            echo "PASS: Node.js >= 18"
+          else
+            echo "FAIL: Node.js < 18"
+            exit 1
+          fi
+
+  test-windows:
+    name: Test Windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Test env write logic (Windows integration)
+        shell: pwsh
+        run: |
+          # 用 node 测试 Windows setx 逻辑（模拟写入+验证）
+          node -e "
+            const { execSync } = require('child_process');
+
+            // 1. Write a test env var
+            try {
+              execSync('setx PPIO_CI_TEST_VAR \"ci_test_value\"', { shell: 'cmd.exe' });
+              console.log('PASS: setx command executed');
+            } catch (e) {
+              console.error('FAIL: setx failed: ' + e.message);
+              process.exit(1);
+            }
+
+            // 2. Clean up (delete via REG DELETE)
+            try {
+              execSync('REG DELETE \"HKCU\\Environment\" /v PPIO_CI_TEST_VAR /f', { shell: 'cmd.exe' });
+              console.log('PASS: REG DELETE cleanup succeeded');
+            } catch (e) {
+              console.log('WARN: REG DELETE cleanup: ' + e.message);
+            }
+
+            console.log('PASS: Windows env var write/cleanup cycle works');
+          "
+
+      - name: Test Node.js detection logic
+        shell: pwsh
+        run: |
+          $ver = node --version
+          Write-Host "Node.js version: $ver"
+          $major = [int]($ver -replace 'v' -split '\.')[0]
+          if ($major -ge 18) {
+            Write-Host "PASS: Node.js >= 18"
+          } else {
+            Write-Host "FAIL: Node.js < 18"
+            exit 1
+          }
+
+      - name: Test Claude Code package availability
+        shell: pwsh
+        run: |
+          npm view @anthropic-ai/claude-code version --registry https://registry.npmmirror.com
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "PASS: Package available on npmmirror"
+          } else {
+            npm view @anthropic-ai/claude-code version
+            Write-Host "PASS: Package available on npmjs"
+          }

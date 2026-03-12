@@ -295,6 +295,37 @@ assert(mainContent.includes("shell: 'cmd.exe'"), 'Windows exec 使用 cmd.exe');
 assert(mainContent.includes("'icon.ico'"), 'Windows 使用 .ico 图标');
 assert(mainContent.includes("'icon.icns'"), 'macOS 使用 .icns 图标');
 
+// ─── SUITE 8: v1.8.0 新功能检查 ─────────────────────────────────
+console.log('\n📋 Suite 8: v1.8.0 新功能（自动验证 + 一键启动）');
+
+// main.js: verify-config handler
+assert(mainContent.includes("'verify-config'"), 'main.js 有 verify-config IPC handler');
+assert(mainContent.includes("ANTHROPIC_AUTH_TOKEN"), 'verify-config 检查 AUTH_TOKEN');
+assert(mainContent.includes("/bin/bash -lc"), 'verify-config 用 login shell 验证');
+
+// main.js: launch-claude handler
+assert(mainContent.includes("'launch-claude'"), 'main.js 有 launch-claude IPC handler');
+assert(mainContent.includes('osascript'), 'macOS 用 osascript 打开终端');
+assert(mainContent.includes('source ~/.zshrc'), 'launch-claude 先 source .zshrc');
+assert(mainContent.includes("'cmd.exe'") && mainContent.includes("'/k'"), 'Windows 用 cmd /k 启动');
+
+// preload.js: 新 API 暴露
+const preloadContent = fs.readFileSync('/root/.openclaw/workspace/projects/ppio-claude-setup/preload.js', 'utf8');
+assert(preloadContent.includes('verifyConfig'), 'preload.js 暴露 verifyConfig');
+assert(preloadContent.includes('launchClaude'), 'preload.js 暴露 launchClaude');
+
+// renderer.js: 自动验证逻辑
+assert(rendererContent.includes('autoVerifyConfig'), 'renderer.js 有 autoVerifyConfig 函数');
+assert(rendererContent.includes('btn-launch-claude'), 'renderer.js 绑定启动按钮事件');
+assert(rendererContent.includes('link-support'), 'renderer.js 绑定 support 邮箱链接');
+
+// renderer.html: 新 UI 元素
+assert(htmlContent.includes('id="btn-launch-claude"'), 'HTML 有启动按钮');
+assert(htmlContent.includes('id="verify-status"'), 'HTML 有验证状态显示');
+assert(htmlContent.includes('support@ppio.com'), 'HTML 有 support 邮箱');
+assert(htmlContent.includes('id="step-verify"'), 'HTML 有验证步骤');
+assert(htmlContent.includes('id="step-launch"'), 'HTML 有启动步骤');
+
 // ─── 汇总 ───────────────────────────────────────────────────────
 console.log('\n' + '='.repeat(50));
 console.log(`✅ 通过: ${passed}  ❌ 失败: ${failed}`);
