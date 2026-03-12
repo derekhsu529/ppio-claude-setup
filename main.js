@@ -372,6 +372,84 @@ ipcMain.handle('restore-config', async () => {
   }
 });
 
+// Verify config after apply — 用新 shell 验证环境变量是否生效
+ipcMain.handle('verify-config', async () => {
+  const envWithPath = getEnvWithPath();
+  const home = os.homedir();
+
+  try {
+    // 用 login shell 读取最新的 .zshrc / .bash_profile
+    const shell = process.platform === 'win32' ? 'cmd.exe' : '/bin/bash';
+    const cmd = process.platform === 'win32'
+      ? 'echo %ANTHROPIC_AUTH_TOKEN%'
+      : `/bin/bash -lc 'echo $ANTHROPIC_AUTH_TOKEN'`;
+
+    const result = await new Promise((resolve) => {
+      exec(cmd, { timeout: 10000, env: envWithPath }, (error, stdout) => {
+        const val = (stdout || '').trim();
+        resolve({
+          success: !error && val.length > 0 && val !== '$ANTHROPIC_AUTH_TOKEN' && val !== '%ANTHROPIC_AUTH_TOKEN%',
+          value: val
+        });
+      });
+    });
+    return result;
+  } catch (e) {
+    return { success: false, value: '', error: e.message };
+  }
+});
+
+// Launch Claude Code in a new terminal window
+ipcMain.handle('launch-claude', async () => {
+  const envWithPath = getEnvWithPath();
+
+  try {
+    if (process.platform === 'darwin') {
+      // macOS: 用 osascript 打开 Terminal.app 并运行 claude
+      // 先 source .zshrc 确保环境变量加载
+      await new Promise((resolve, reject) => {
+        const child = spawn('osascript', [
+          '-e', 'tell application "Terminal"',
+          '-e', 'activate',
+          '-e', 'do script "source ~/.zshrc 2>/dev/null; claude"',
+          '-e', 'end tell'
+        ], { timeout: 10000 });
+        child.on('close', (code) => {
+          if (code === 0) resolve();
+          else reject(new Error(`osascript exited with code ${code}`));
+        });
+        child.on('error', reject);
+      });
+      return { success: true };
+    } else if (process.platform === 'win32') {
+      // Windows: 用 start cmd 打开新窗口
+      spawn('cmd.exe', ['/c', 'start', 'cmd', '/k', 'claude'], {
+        shell: true,
+        detached: true,
+        stdio: 'ignore',
+        env: envWithPath
+      });
+      return { success: true };
+    } else {
+      // Linux: 尝试常见终端
+      const terminals = ['gnome-terminal', 'konsole', 'xterm'];
+      for (const term of terminals) {
+        try {
+          spawn(term, ['-e', 'bash -lc "claude"'], {
+            detached: true,
+            stdio: 'ignore',
+            env: envWithPath
+          });
+          return { success: true };
+        } catch (e) { continue; }
+      }
+      return { success: false, error: '未找到终端程序' };
+    }
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
 // Check existing config
 ipcMain.handle('check-config', async () => {
   const platform = process.platform;

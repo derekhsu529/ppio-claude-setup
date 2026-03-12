@@ -181,19 +181,33 @@
 
     <div class="next-steps" id="result-next-steps">
       <h3>接下来的步骤</h3>
-      <div class="next-step-item">
+
+      <!-- 自动验证 -->
+      <div class="next-step-item" id="step-verify">
         <div class="step-num-badge">1</div>
-        <div class="step-content" id="next-step-1">重启终端（Mac: 关闭并重新打开 Terminal）</div>
-      </div>
-      <div class="next-step-item">
-        <div class="step-num-badge">2</div>
         <div class="step-content">
-          验证配置：运行 <code>echo $ANTHROPIC_AUTH_TOKEN</code>，应显示你的 API Key
+          <span id="verify-status">⏳ 正在验证配置是否生效...</span>
         </div>
       </div>
-      <div class="next-step-item">
-        <div class="step-num-badge">3</div>
-        <div class="step-content">启动 Claude Code：<code>claude</code></div>
+
+      <!-- 一键启动 Claude Code -->
+      <div class="next-step-item" id="step-launch">
+        <div class="step-num-badge">2</div>
+        <div class="step-content">
+          <span>点击按钮启动 Claude Code</span>
+          <div style="margin-top:8px;">
+            <button class="btn btn-primary" id="btn-launch-claude">🚀 启动 Claude Code</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 提示 -->
+      <div class="next-step-item" id="step-note">
+        <div class="step-num-badge">💡</div>
+        <div class="step-content" style="font-size:13px; color:var(--text-dim);">
+          之后使用：打开终端，直接输入 <code>claude</code> 即可启动。<br>
+          遇到问题？联系 <a class="link" id="link-support" href="#">support@ppio.com</a>
+        </div>
       </div>
     </div>
 

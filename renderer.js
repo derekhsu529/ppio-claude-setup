@@ -459,24 +459,85 @@ document.addEventListener('DOMContentLoaded', () => {
       : '出错了';
 
     $('result-message').textContent = result.success
-      ? (result.message || '操作完成')
+      ? (type === 'restore' ? (result.message || '操作完成') : '环境变量已写入，正在自动验证...')
       : ('错误信息：\n' + result.error);
 
     const nextSteps = $('result-next-steps');
     nextSteps.style.display = (result.success && type !== 'restore') ? 'block' : 'none';
 
-    if (result.success && type !== 'restore') {
-      if (platform === 'win32') {
-        $('next-step-1').innerHTML = '重启 CMD / PowerShell 窗口';
-        nextSteps.querySelectorAll('.next-step-item')[1]
-          .querySelector('.step-content').innerHTML =
-          '验证配置：运行 <code>echo %ANTHROPIC_AUTH_TOKEN%</code>，应显示你的 API Key';
-      } else {
-        $('next-step-1').innerHTML = '重启终端，或运行 <code>source ~/.zshrc</code>';
-      }
-    }
-
     showScreen('result');
+
+    // 配置成功后自动验证
+    if (result.success && type !== 'restore') {
+      autoVerifyConfig();
+    }
+  }
+
+  async function autoVerifyConfig() {
+    const verifyStatus = $('verify-status');
+    const launchBtn = $('btn-launch-claude');
+    verifyStatus.textContent = '⏳ 正在验证配置是否生效...';
+    launchBtn.disabled = true;
+
+    // 短暂等待让文件系统刷新
+    await new Promise(r => setTimeout(r, 1000));
+
+    try {
+      const r = await window.electronAPI.verifyConfig();
+      if (r.success) {
+        verifyStatus.textContent = '✅ 配置验证通过，API Key 已生效';
+        verifyStatus.style.color = '#4ade80';
+        launchBtn.disabled = false;
+        log('配置验证通过 ✓', 'success');
+      } else {
+        verifyStatus.innerHTML = '⚠️ 配置已写入，需要<strong>重启终端</strong>后生效（这是正常的）';
+        verifyStatus.style.color = '#fbbf24';
+        launchBtn.disabled = false;
+        log('配置已写入，新终端窗口中将生效', 'info');
+      }
+    } catch (e) {
+      verifyStatus.innerHTML = '⚠️ 配置已写入，请<strong>重启终端</strong>后使用';
+      verifyStatus.style.color = '#fbbf24';
+      launchBtn.disabled = false;
+      log('验证跳过: ' + e.message, 'warning');
+    }
+  }
+
+  // 启动 Claude Code 按钮
+  $('btn-launch-claude').addEventListener('click', async () => {
+    const btn = $('btn-launch-claude');
+    btn.disabled = true;
+    btn.textContent = '⏳ 正在启动...';
+    log('正在打开终端并启动 Claude Code...', 'info');
+
+    try {
+      const r = await window.electronAPI.launchClaude();
+      if (r.success) {
+        btn.textContent = '✅ 已启动';
+        btn.className = 'btn btn-success-static';
+        log('Claude Code 已在新终端窗口启动 ✓', 'success');
+      } else {
+        btn.textContent = '🚀 重试启动';
+        btn.className = 'btn btn-primary';
+        btn.disabled = false;
+        log('启动失败: ' + (r.error || '未知'), 'error');
+        showToast('启动失败，请手动打开终端输入 claude');
+      }
+    } catch (e) {
+      btn.textContent = '🚀 重试启动';
+      btn.className = 'btn btn-primary';
+      btn.disabled = false;
+      log('启动出错: ' + e.message, 'error');
+    }
+  });
+
+  // support 邮件链接
+  const linkSupport = $('link-support');
+  if (linkSupport) {
+    linkSupport.addEventListener('click', e => {
+      e.preventDefault();
+      window.electronAPI.openExternal('mailto:support@ppio.com');
+    });
   }
 
   $('btn-result-back').addEventListener('click', () => showScreen('main'));

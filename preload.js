@@ -32,6 +32,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   restoreConfig: () => ipcRenderer.invoke('restore-config'),
   checkConfig: () => ipcRenderer.invoke('check-config'),
 
+  // Post-apply actions
+  verifyConfig: () => ipcRenderer.invoke('verify-config'),
+  launchClaude: () => ipcRenderer.invoke('launch-claude'),
+
   // Platform info
   platform: process.platform,
 
