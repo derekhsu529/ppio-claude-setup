@@ -92,6 +92,29 @@ npm run build:all    # 两个平台
 
 ---
 
+## 🍎 macOS 安装说明
+
+由于本工具未经 Apple 公证，首次安装时 macOS 会拦截运行。请按以下步骤操作：
+
+### 第一步：打开 DMG 并拖入应用程序
+
+下载 `.dmg` 文件后，双击打开，将 **PPIO Claude Code Setup** 拖到「应用程序」文件夹。
+
+### 第二步：绕过 Gatekeeper 拦截
+
+首次双击应用时，系统会弹出"无法打开，因为无法验证开发者"的提示。请按以下步骤操作：
+
+1. 打开 **系统设置** → **隐私与安全性**
+2. 向下滚动，找到「安全性」一栏，会看到类似"已阻止使用 PPIO Claude Code Setup，因为来自身份不明的开发者"
+3. 点击右侧的 **「仍要打开」** 按钮
+4. 在弹出的确认对话框中再次点击 **「打开」**
+
+> 💡 如果没有看到「仍要打开」按钮，可以在 Finder 中**右键点击**应用图标 → 选择「打开」，然后在弹出框中点击「打开」。
+
+完成后，后续每次打开无需重复此操作。
+
+---
+
 ## 🗑 清除配置
 
 点击「清除配置」按钮：
@@ -140,6 +163,15 @@ GitHub Actions 会自动构建 Mac DMG 和 Windows EXE，并创建 Release。
 ## 📄 License
 
 MIT © 2024 PPIO
+
+---
+
+## 🆘 遇到问题？
+
+使用过程中如遇到任何问题，欢迎通过以下方式获取帮助：
+
+- 📧 **邮件支持**：[support@ppio.com](mailto:support@ppio.com)
+- 🐛 **提交 Issue**：[GitHub Issues](https://github.com/derekhsu529/ppio-claude-setup/issues)
 
 ---
 
