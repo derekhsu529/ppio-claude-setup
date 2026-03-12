@@ -30,79 +30,12 @@ jobs:
           set -e
           echo "=== Integration: write config to .zshrc ==="
 
-          # 备份
-          cp ~/.zshrc ~/.zshrc.bak 2>/dev/null || echo "# empty" > ~/.zshrc.bak
+          # CI runner 可能没有 .zshrc，先确保存在
+          touch ~/.zshrc
+          cp ~/.zshrc ~/.zshrc.bak
 
-          # 用 node 直接调用写入逻辑
-          node -e "
-            const fs = require('fs');
-            const os = require('os');
-            const path = require('path');
-
-            const PPIO_MARKER_START = '# >>> PPIO Claude Code Setup START >>>';
-            const PPIO_MARKER_END = '# <<< PPIO Claude Code Setup END <<<';
-
-            function buildEnvBlock(config) {
-              const lines = [
-                PPIO_MARKER_START,
-                'export ANTHROPIC_BASE_URL=\"https://api.ppio.com/anthropic\"',
-                'export ANTHROPIC_AUTH_TOKEN=\"' + config.apiKey + '\"',
-                'export ANTHROPIC_MODEL=\"' + config.mainModel + '\"',
-                'export ANTHROPIC_SMALL_FAST_MODEL=\"' + config.fastModel + '\"',
-                PPIO_MARKER_END
-              ];
-              return '\n' + lines.join('\n') + '\n';
-            }
-
-            function removeEnvBlock(content) {
-              const startIdx = content.indexOf(PPIO_MARKER_START);
-              const endIdx = content.indexOf(PPIO_MARKER_END);
-              if (startIdx === -1 || endIdx === -1) return content;
-              const before = content.substring(0, startIdx).replace(/\n+$/, '');
-              const after = content.substring(endIdx + PPIO_MARKER_END.length).replace(/^\n/, '');
-              return before + '\n' + after;
-            }
-
-            const zshrc = path.join(os.homedir(), '.zshrc');
-
-            // 1. Write config
-            let content = fs.readFileSync(zshrc, 'utf8');
-            content = content.trimEnd() + buildEnvBlock({
-              apiKey: 'sk_ci_test_123',
-              mainModel: 'pa/claude-sonnet-4-6',
-              fastModel: 'pa/claude-haiku-4-5-20251001'
-            });
-            fs.writeFileSync(zshrc, content, 'utf8');
-
-            // 2. Verify it's there
-            const written = fs.readFileSync(zshrc, 'utf8');
-            if (!written.includes('sk_ci_test_123')) {
-              console.error('FAIL: API key not found in .zshrc');
-              process.exit(1);
-            }
-            console.log('PASS: Config written to .zshrc');
-
-            // 3. Source and verify
-            const { execSync } = require('child_process');
-            const val = execSync('/bin/bash -lc \"source ~/.zshrc && echo \$ANTHROPIC_AUTH_TOKEN\"', { encoding: 'utf8' }).trim();
-            if (val !== 'sk_ci_test_123') {
-              console.error('FAIL: source did not load env var, got: ' + val);
-              process.exit(1);
-            }
-            console.log('PASS: source ~/.zshrc loaded env var correctly');
-
-            // 4. Remove config
-            let afterContent = fs.readFileSync(zshrc, 'utf8');
-            afterContent = removeEnvBlock(afterContent);
-            fs.writeFileSync(zshrc, afterContent, 'utf8');
-
-            const cleaned = fs.readFileSync(zshrc, 'utf8');
-            if (cleaned.includes('sk_ci_test_123')) {
-              console.error('FAIL: API key still in .zshrc after cleanup');
-              process.exit(1);
-            }
-            console.log('PASS: Config removed from .zshrc');
-          "
+          # 用独立脚本文件避免 shell 转义问题
+          node test/integration-mac.js
 
           # 还原
           mv ~/.zshrc.bak ~/.zshrc 2>/dev/null || true
@@ -149,30 +82,7 @@ jobs:
 
       - name: Test env write logic (Windows integration)
         shell: pwsh
-        run: |
-          # 用 node 测试 Windows setx 逻辑（模拟写入+验证）
-          node -e "
-            const { execSync } = require('child_process');
-
-            // 1. Write a test env var
-            try {
-              execSync('setx PPIO_CI_TEST_VAR \"ci_test_value\"', { shell: 'cmd.exe' });
-              console.log('PASS: setx command executed');
-            } catch (e) {
-              console.error('FAIL: setx failed: ' + e.message);
-              process.exit(1);
-            }
-
-            // 2. Clean up (delete via REG DELETE)
-            try {
-              execSync('REG DELETE \"HKCU\\Environment\" /v PPIO_CI_TEST_VAR /f', { shell: 'cmd.exe' });
-              console.log('PASS: REG DELETE cleanup succeeded');
-            } catch (e) {
-              console.log('WARN: REG DELETE cleanup: ' + e.message);
-            }
-
-            console.log('PASS: Windows env var write/cleanup cycle works');
-          "
+        run: node test/integration-win.js
 
       - name: Test Node.js detection logic
         shell: pwsh
